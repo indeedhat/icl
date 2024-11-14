@@ -212,3 +212,35 @@ func (*MapLiteral) expressionNode() {
 }
 
 var _ Expression = (*MapLiteral)(nil)
+
+type BlockLiteral struct {
+	Token      Token
+	Parameters []Token
+	Body       *BlockStatement
+}
+
+// String implements Expression
+func (n *BlockLiteral) String() string {
+	var buf bytes.Buffer
+
+	buf.WriteString(n.TokenLiteral())
+	for _, p := range n.Parameters {
+		buf.WriteString(" " + p.Literal)
+	}
+	buf.WriteString(" ")
+
+	buf.WriteString(n.Body.String())
+
+	return buf.String()
+}
+
+// TokenLiteral implements Expression
+func (n *BlockLiteral) TokenLiteral() string {
+	return n.Token.Literal
+}
+
+// expressionNode implements Expression
+func (*BlockLiteral) expressionNode() {
+}
+
+var _ Expression = (*BlockLiteral)(nil)

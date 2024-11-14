@@ -30,37 +30,6 @@ func (*ExpressionStatement) statementNode() {
 
 var _ Statement = (*ExpressionStatement)(nil)
 
-type BlockStatement struct {
-	Token      Token
-	Statements []Statement
-}
-
-// String implements Statement
-func (n *BlockStatement) String() string {
-	var buf bytes.Buffer
-
-	buf.WriteString("{\n")
-
-	for _, stmt := range n.Statements {
-		buf.WriteString(fmt.Sprintf("    %s\n", stmt.String()))
-	}
-
-	buf.WriteString("}")
-
-	return buf.String()
-}
-
-// statementNode implements Statement
-func (n *BlockStatement) statementNode() {
-}
-
-// TokenLiteral implements Node
-func (n *BlockStatement) TokenLiteral() string {
-	return n.Token.Literal
-}
-
-var _ Statement = (*BlockStatement)(nil)
-
 type AssignStatement struct {
 	Token Token
 	Name  *Identifier
@@ -91,3 +60,66 @@ func (n *AssignStatement) TokenLiteral() string {
 }
 
 var _ Statement = (*AssignStatement)(nil)
+
+type BlockStatement struct {
+	Token      Token
+	Parameters []Token
+	Body       *BlockBodyStatement
+}
+
+// String implements Expression
+func (n *BlockStatement) String() string {
+	var buf bytes.Buffer
+
+	buf.WriteString(n.TokenLiteral())
+	for _, p := range n.Parameters {
+		buf.WriteString(" " + p.Literal)
+	}
+	buf.WriteString(" ")
+
+	buf.WriteString(n.Body.String())
+
+	return buf.String()
+}
+
+// TokenLiteral implements Expression
+func (n *BlockStatement) TokenLiteral() string {
+	return n.Token.Literal
+}
+
+// expressionNode implements Expression
+func (*BlockStatement) statementNode() {
+}
+
+var _ Statement = (*BlockStatement)(nil)
+
+type BlockBodyStatement struct {
+	Token      Token
+	Statements []Statement
+}
+
+// String implements Statement
+func (n *BlockBodyStatement) String() string {
+	var buf bytes.Buffer
+
+	buf.WriteString("{\n")
+
+	for _, stmt := range n.Statements {
+		buf.WriteString(fmt.Sprintf("    %s\n", stmt.String()))
+	}
+
+	buf.WriteString("}")
+
+	return buf.String()
+}
+
+// statementNode implements Statement
+func (n *BlockBodyStatement) statementNode() {
+}
+
+// TokenLiteral implements Node
+func (n *BlockBodyStatement) TokenLiteral() string {
+	return n.Token.Literal
+}
+
+var _ Statement = (*BlockBodyStatement)(nil)

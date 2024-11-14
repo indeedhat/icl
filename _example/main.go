@@ -22,6 +22,16 @@ func main() {
 			array_val: ["1","2"], # trailing comma
 			map_val: {data: true,},
 		}
+		my_block "with" data {
+			# comment
+			inner_data = true
+			# comment
+			with_map = {data: true}
+
+			inner_block {
+				# comment
+			}
+		}
 	`)
 	if err != nil {
 		log.Fatal(err)
