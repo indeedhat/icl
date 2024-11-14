@@ -31,6 +31,7 @@ func NewParser(lex *Lexer) *Parser {
 	p.registerPrefixParser(TknFalse, p.parseBooleanLiteral)
 	p.registerPrefixParser(TknString, p.parseStringLiteral)
 	p.registerPrefixParser(TknLBracket, p.parseArrayLiteral)
+	p.registerPrefixParser(TknLBrace, p.parseMapLiteral)
 
 	// p.registerInfixParser(token.Equal, p.parseInfixExpression)
 
@@ -86,11 +87,8 @@ func (p *Parser) nextToken() {
 // parseStatement parses the next statement in the lexers token stream
 func (p *Parser) parseStatement() Statement {
 	switch p.curToken.Type {
-	// TODO
 	case TknIdent:
 		return p.parseAssignStatement()
-	// case TknReturn:
-	// 	return p.parseReturnStatement()
 	case TknComment:
 		return nil
 	default:

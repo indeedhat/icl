@@ -41,8 +41,10 @@ myvar = "thing"
 ### map
 ```hcl
 {
+    # identifier key
     key1: "value",
-    key2: "value"
+    # string key
+    "key 2": "value"
 }
 ```
 

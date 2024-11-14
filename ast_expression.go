@@ -2,6 +2,7 @@ package icl
 
 import (
 	"bytes"
+	"fmt"
 )
 
 type InfixExpression struct {
@@ -181,36 +182,33 @@ func (*ArrayLiteral) expressionNode() {
 
 var _ Expression = (*ArrayLiteral)(nil)
 
-// type MapLiteral struct {
-// 	Token    Token
-// 	Elements map[Token]Expression
-// }
+type MapLiteral struct {
+	Token    Token
+	Elements map[Expression]Expression
+}
 
-// // String implements Expression
-// func (a *MapLiteral) String() string {
-// 	var buf bytes.Buffer
-// 	buf.WriteString("[")
+// String implements Expression
+func (n *MapLiteral) String() string {
+	var buf bytes.Buffer
 
-// 	for k, elem := range a.Elements {
-// 		if i > 0 {
-// 			buf.WriteString(", ")
-// 		}
+	buf.WriteString("{\n")
 
-// 		buf.WriteString(elem.String())
-// 	}
+	for key, val := range n.Elements {
+		buf.WriteString(fmt.Sprintf("    %s: %s,\n", key.String(), val.String()))
+	}
 
-// 	buf.WriteString("]")
+	buf.WriteString("}")
 
-// 	return buf.String()
-// }
+	return buf.String()
+}
 
-// // TokenLiteral implements Expression
-// func (a *ArrayLiteral) TokenLiteral() string {
-// 	return a.Token.Literal
-// }
+// TokenLiteral implements Expression
+func (n *MapLiteral) TokenLiteral() string {
+	return n.Token.Literal
+}
 
-// // expressionNode implements Expression
-// func (*ArrayLiteral) expressionNode() {
-// }
+// expressionNode implements Expression
+func (*MapLiteral) expressionNode() {
+}
 
-// var _ Expression = (*ArrayLiteral)(nil)
+var _ Expression = (*MapLiteral)(nil)

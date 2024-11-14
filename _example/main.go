@@ -16,6 +16,12 @@ func main() {
 		int_var = 39283
 		array_var = ["some", "data"]
 		# comment
+		map_var = {
+			ident: "val",
+			"string": 123,
+			array_val: ["1","2"], # trailing comma
+			map_val: {data: true,},
+		}
 	`)
 	if err != nil {
 		log.Fatal(err)
