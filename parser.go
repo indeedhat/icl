@@ -2,7 +2,7 @@ package icl
 
 import "fmt"
 
-type prefixParser func() Expression
+type prefixParser func() Node
 
 type Parser struct {
 	lex *Lexer
@@ -22,13 +22,13 @@ func NewParser(lex *Lexer) *Parser {
 	}
 
 	p.registerPrefixParser(TknIdent, p.parseIdentifier)
-	p.registerPrefixParser(TknInt, p.parseIntegerLiteral)
-	p.registerPrefixParser(TknNull, p.parseNullLiteral)
-	p.registerPrefixParser(TknTrue, p.parseBooleanLiteral)
-	p.registerPrefixParser(TknFalse, p.parseBooleanLiteral)
-	p.registerPrefixParser(TknString, p.parseStringLiteral)
-	p.registerPrefixParser(TknLBracket, p.parseArrayLiteral)
-	p.registerPrefixParser(TknLBrace, p.parseMapLiteral)
+	p.registerPrefixParser(TknInt, p.parseIntegerNode)
+	p.registerPrefixParser(TknNull, p.parseNullNode)
+	p.registerPrefixParser(TknTrue, p.parseBooleanNode)
+	p.registerPrefixParser(TknFalse, p.parseBooleanNode)
+	p.registerPrefixParser(TknString, p.parseStringNode)
+	p.registerPrefixParser(TknLBracket, p.parseArrayNode)
+	p.registerPrefixParser(TknLBrace, p.parseMapNode)
 
 	// populate cur/next token fields
 	p.nextToken()
@@ -42,9 +42,9 @@ func (p *Parser) Parse() *Ast {
 	program := &Ast{}
 
 	for p.curToken.Type != TknEof {
-		stmt := p.parseStatement()
+		stmt := p.parseNode()
 		if stmt != nil {
-			program.Statements = append(program.Statements, stmt)
+			program.Nodes = append(program.Nodes, stmt)
 		}
 
 		p.nextToken()
@@ -74,20 +74,18 @@ func (p *Parser) nextToken() {
 	p.peekToken = p.lex.NextToken()
 }
 
-// parseStatement parses the next statement in the lexers token stream
-func (p *Parser) parseStatement() Statement {
+// parseNode parses the next statement in the lexers token stream
+func (p *Parser) parseNode() Node {
 	switch p.curToken.Type {
 	case TknIdent:
 		if p.peekTokenIs(TknLBrace) || p.peekTokenIs(TknIdent) || p.peekTokenIs(TknString) {
-			return p.parseBlockStatement()
+			return p.parseBlockNode()
 		}
-		return p.parseAssignStatement()
+		return p.parseAssignNode()
 	case TknComment:
 		return nil
 	default:
-		return nil
-		// TODO
-		//return p.parseExpressionStatement()
+		return p.parseExpression()
 	}
 }
 

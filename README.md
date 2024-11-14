@@ -76,3 +76,6 @@ my_key = $var
 ```hcl
 my_key = env(HOME)
 ```
+
+## Known issues
+- [ ] parser is probably too tolerant of issues

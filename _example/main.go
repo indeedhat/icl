@@ -19,7 +19,7 @@ func main() {
 		map_var = {
 			ident: "val",
 			"string": 123,
-			array_val: ["1","2"], # trailing comma
+			array_val: ["1","2","3", "4"], # trailing comma
 			map_val: {data: true,},
 		}
 		my_block "with" data {

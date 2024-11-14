@@ -3,14 +3,14 @@ package icl
 import "bytes"
 
 type Ast struct {
-	Statements []Statement
+	Nodes []Node
 }
 
 // String implements Node
 func (n *Ast) String() string {
 	var buf bytes.Buffer
 
-	for _, stmt := range n.Statements {
+	for _, stmt := range n.Nodes {
 		buf.WriteString(stmt.String())
 	}
 
@@ -19,11 +19,11 @@ func (n *Ast) String() string {
 
 // TokenLiteral implements Node
 func (n *Ast) TokenLiteral() string {
-	if len(n.Statements) == 0 {
+	if len(n.Nodes) == 0 {
 		return ""
 	}
 
-	return n.Statements[0].TokenLiteral()
+	return n.Nodes[0].TokenLiteral()
 }
 
 var _ Node = (*Ast)(nil)
@@ -33,28 +33,14 @@ type Node interface {
 	String() string
 }
 
-type Statement interface {
-	Node
-	statementNode()
-}
-
-type Expression interface {
-	Node
-	expressionNode()
-}
-
 type Identifier struct {
 	Token
 	Value string
 }
 
-// String implements Statement
+// String implements Node
 func (n *Identifier) String() string {
 	return n.Value
-}
-
-// expressionNode implements Expression
-func (*Identifier) expressionNode() {
 }
 
 // TokenLiteral implements Node
@@ -62,4 +48,4 @@ func (n *Identifier) TokenLiteral() string {
 	return n.Token.Literal
 }
 
-var _ Expression = (*Identifier)(nil)
+var _ Node = (*Identifier)(nil)
