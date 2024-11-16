@@ -6,7 +6,8 @@ part without any of the complex logic
 ## Literals
 ### String
 ```hcl
-"string literal" # strings must be encapsulated by double quotes
+"string literal"
+'string literal'
 ```
 
 ### Integer
@@ -56,6 +57,11 @@ my_block "with value" {
 }
 ```
 
+### environment variable interpolation
+```hcl
+my_key = env(HOME)
+```
+
 ### comment
 ```hcl
 # comments start with a hash
@@ -72,10 +78,6 @@ $var = "value"
 my_key = $var
 ```
 
-### environment variable interpolation
-```hcl
-my_key = env(HOME)
-```
 
 ## Known issues
 - [ ] parser is probably too tolerant of issues

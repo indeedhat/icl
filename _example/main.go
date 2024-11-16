@@ -32,6 +32,7 @@ func main() {
 				# comment
 			}
 		}
+		my_envar = env(SECRET_TOKEN)
 	`)
 	if err != nil {
 		log.Fatal(err)

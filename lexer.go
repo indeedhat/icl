@@ -52,8 +52,8 @@ func (l *Lexer) NextToken() Token {
 		return l.token(TknComment, l.readLineComment())
 	case ':':
 		return l.token(TknColon, string(l.char))
-	case '"':
-		str := l.readStringLiteral()
+	case '"', '\'':
+		str := l.readStringLiteral(l.char)
 		if str == nil {
 			return l.token(TknIllegal, string(l.char))
 		}
@@ -139,7 +139,7 @@ func (l *Lexer) readIdentifier() string {
 
 // readStringLiteral reads a string literal
 // this will only accept double quoted strings and can have double quotes escaped with a \
-func (l *Lexer) readStringLiteral() *string {
+func (l *Lexer) readStringLiteral(terminator byte) *string {
 	var buf bytes.Buffer
 
 	for {
@@ -155,13 +155,13 @@ func (l *Lexer) readStringLiteral() *string {
 		}
 
 		l.readChar()
-		if peekChar == '"' && char != '\\' {
+		if peekChar == terminator && char != '\\' {
 			break
 		}
 	}
 
 	// skip final "
-	if l.peekChar() == '"' {
+	if l.peekChar() == terminator {
 		l.readChar()
 	}
 

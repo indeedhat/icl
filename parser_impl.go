@@ -124,6 +124,27 @@ func (p *Parser) parseIntegerNode() Node {
 
 // parseIdentifier parses an identifier token into an expression
 func (p *Parser) parseIdentifier() Node {
+	if p.curToken.Literal == "env" && p.peekTokenIs(TknLParen) {
+		n := EnvarNode{
+			Token: p.curToken,
+		}
+
+		// advance past (
+		p.nextToken()
+
+		if !p.expectPeek(TknIdent) {
+			return nil
+		}
+
+		n.Identifier = p.parseIdentifier().(*Identifier)
+
+		if !p.expectPeek(TknRParen) {
+			return nil
+		}
+
+		return &n
+	}
+
 	return &Identifier{
 		Token: p.curToken,
 		Value: p.curToken.Literal,
