@@ -1,4 +1,4 @@
-# ICL: Indeedhats config language
+# ICL: Indeedhat's config language
 
 Inspired by hcl and nginx's config languages this is pretty much just a stripped down version that does the data format
 part without any of the complex logic
@@ -264,5 +264,21 @@ type config struct {
     MyVar1 string `icl:"my_var_1"`
     MyVar2 string `icl:"my_var_2"`
     PostMyVar2 []string `icl:".comments"`
+}
+```
+
+### default values
+Allow setting a default value in the struct tag for if there is no assignemt in the ICL document
+
+```go
+document = `
+version = 1
+my_var_1 = "data"
+`
+
+type config struct {
+    Version int `icl:"version"`
+    MyVar1 string `icl:"my_var_1"`
+    MyVar2 string `icl:"my_var_2,default=some default value"`
 }
 ```

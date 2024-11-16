@@ -10,7 +10,8 @@ import (
 
 func main() {
 	// parse()
-	marshal()
+	// marshal()
+	unmarshal()
 }
 
 func parse() {
@@ -31,7 +32,7 @@ func parse() {
 		}
 		my_block "with" data {
 			# comment
-			inner_data = true
+			data = true
 			# comment
 			with_map = {data: true}
 
@@ -63,7 +64,7 @@ type config struct {
 	Map         map[string]float64 `icl:"float_map.2"`
 	StructSlice []inner2           `icl:"multi_block"`
 	NoInc       string
-	Envar       string `icl:"envar,env(MY_ENVAR)"`
+	Envar       string `icl:"envar,env(HOME)"`
 }
 
 type inner struct {
@@ -121,4 +122,41 @@ func marshal() {
 	}
 
 	fmt.Print(icl.MarshalString(v))
+}
+
+func unmarshal() {
+	document := `
+	string = "my string"
+	boolean = true
+	nullable = null
+	nullable_with_val = "with val"
+	integer = -17
+	unsigned_integer = 23
+	float = 3.14
+	envar = env(HOME)
+	string_slice = ["one", "two", "three"]
+	int_slice = [1, 2, 3]
+	float_slice = [1, 2, 3.5]
+
+	struct "param1" "param2" {
+		data = true
+
+		inner_2 {
+			data = true
+		}
+	}
+	`
+
+	ast, err := icl.Parse(document)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	c := config{}
+
+	if err := ast.Unmarshal(&c); err != nil {
+		log.Fatal(err)
+	}
+
+	spew.Dump(c)
 }

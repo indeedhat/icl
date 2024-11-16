@@ -67,17 +67,18 @@ func (e Encoder) buildNode(tag *tags, rf reflect.StructField, rv reflect.Value) 
 	}
 
 	switch rk {
-	// primatives
+	// primitives
 	case reflect.String,
 		reflect.Bool,
 		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
 		reflect.Float32, reflect.Float64:
+
 		if tag.isParam {
 			return nil, errors.New("root struct cannot contain params")
 		}
 
-		v, err := e.buildPrimativeNode(tag, rk, rv)
+		v, err := e.buildPrimitiveNode(tag, rk, rv)
 		if err != nil {
 			return nil, err
 		}
@@ -104,7 +105,7 @@ func (e Encoder) buildNode(tag *tags, rf reflect.StructField, rv reflect.Value) 
 			if rv.Type().Elem().Kind() == reflect.Struct {
 				node, err = e.buildStructNode(tag, rv.Index(i))
 			} else {
-				node, err = e.buildPrimativeNode(tag, rv.Type().Elem().Kind(), rv.Index(i))
+				node, err = e.buildPrimitiveNode(tag, rv.Type().Elem().Kind(), rv.Index(i))
 			}
 			if err != nil {
 				return nil, err
@@ -138,7 +139,7 @@ func (e Encoder) buildNode(tag *tags, rf reflect.StructField, rv reflect.Value) 
 		elems := make(map[Node]Node)
 
 		for _, key := range rv.MapKeys() {
-			n, err := e.buildPrimativeNode(tag, rv.Type().Elem().Kind(), rv.MapIndex(key))
+			n, err := e.buildPrimitiveNode(tag, rv.Type().Elem().Kind(), rv.MapIndex(key))
 			if err != nil {
 				return nil, err
 			}
@@ -157,7 +158,7 @@ func (e Encoder) buildNode(tag *tags, rf reflect.StructField, rv reflect.Value) 
 	return nil, errors.New("cant convert " + rk.String())
 }
 
-func (e Encoder) buildPrimativeNode(tag *tags, rk reflect.Kind, rv reflect.Value) (Node, error) {
+func (e Encoder) buildPrimitiveNode(tag *tags, rk reflect.Kind, rv reflect.Value) (Node, error) {
 	if tag.env != "" {
 		return &EnvarNode{Identifier: &Identifier{Value: tag.env}}, nil
 	}

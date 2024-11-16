@@ -202,9 +202,6 @@ func (p *Parser) parseBlockNode() Node {
 func (p *Parser) parseBlockBodyNode() *BlockBodyNode {
 	block := &BlockBodyNode{Token: p.curToken}
 
-	// advance cursor bast { token
-	p.nextToken()
-
 	// loop until either a } or EOF token is found
 	for !p.curTokenIs(TknRBrace) && !p.curTokenIs(TknEof) {
 		stmt := p.parseNode()

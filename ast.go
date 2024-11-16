@@ -3,6 +3,7 @@ package icl
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 )
@@ -40,6 +41,17 @@ func (n *Ast) Version() int {
 	}
 
 	return int(i)
+}
+
+// Unmarshal fillso out the provided struct pointer with the data in the AST
+func (a Ast) Unmarshal(v any) error {
+	rv := reflect.ValueOf(v)
+	if rv.Kind() != reflect.Pointer || rv.IsNil() || rv.Elem().Kind() != reflect.Struct {
+		return &InvalidUnmarshalError{reflect.TypeOf(v)}
+	}
+
+	d := decoder{a, rv.Elem(), 0}
+	return d.decode()
 }
 
 // String implements Node

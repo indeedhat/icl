@@ -52,6 +52,8 @@ func (l *Lexer) NextToken() Token {
 		return l.token(TknComment, l.readLineComment())
 	case ':':
 		return l.token(TknColon, string(l.char))
+	case '-':
+		return l.token(TknInt, l.readNumber())
 	case '"', '\'':
 		str := l.readStringLiteral(l.char)
 		if str == nil {
