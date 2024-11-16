@@ -3,6 +3,7 @@ package icl
 import (
 	"bytes"
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -78,7 +79,7 @@ type StringNode struct {
 
 // String implements Node
 func (n *StringNode) String() string {
-	return `"` + n.Value + `"`
+	return strconv.Quote(n.Value)
 }
 
 // TokenNode implements Node
@@ -164,6 +165,10 @@ type MapNode struct {
 func (n *MapNode) String() string {
 	var buf bytes.Buffer
 
+	if len(n.Elements) == 0 {
+		return "{}"
+	}
+
 	buf.WriteString("{\n")
 
 	for key, val := range n.Elements {
@@ -225,7 +230,7 @@ func (n *BlockNode) String() string {
 
 	buf.WriteString(n.TokenLiteral())
 	for _, p := range n.Parameters {
-		buf.WriteString(" " + p.Literal)
+		buf.WriteString(" " + strconv.Quote(p.Literal))
 	}
 	buf.WriteString(" ")
 

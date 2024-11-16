@@ -48,30 +48,61 @@ func parse() {
 	spew.Dump(ast)
 }
 
+type inner struct {
+	P1     string `icl:".param"`
+	P2     string `icl:".param"`
+	Data   bool   `icl:"data"`
+	Inner2 inner2 `icl:"inner_2"`
+}
+type inner2 struct {
+	P1   string `icl:".param"`
+	P2   string `icl:".param"`
+	Data bool   `icl:"data"`
+}
+
 type t struct {
-	String   string   `icl:"string"`
-	Boolean  bool     `icl:"boolean"`
-	Nil      *string  `icl:"nullable"`
-	NilWith  *string  `icl:"nullable_with_val"`
-	Int      int8     `icl:"integer"`
-	Uint     uint     `icl:"unsigned_integer"`
-	Float    float32  `icl:"float.2"`
-	StrSlice []string `icl:"string_slice"`
-	NoInc    string
+	String     string             `icl:"string"`
+	Boolean    bool               `icl:"boolean"`
+	Nil        *string            `icl:"nullable"`
+	NilWith    *string            `icl:"nullable_with_val"`
+	Int        int8               `icl:"integer"`
+	Uint       uint               `icl:"unsigned_integer"`
+	Float      float32            `icl:"float.2"`
+	StrSlice   []string           `icl:"string_slice"`
+	IntSlice   []int              `icl:"int_slice"`
+	FloatSlice []float64          `icl:"float_slice.3"`
+	Struct     inner              `icl:"struct"`
+	Map        map[string]float64 `icl:"float_map.2"`
+	NoInc      string
 }
 
 func marshal() {
 	str := "my string"
 	v := t{
-		String:      "yeppas",
-		Boolean:     false,
-		Int:         -17,
-		Uint:        28362,
-		Float:       38.2223,
-		NoInc:       "noooop",
-		StrSlice:    []string{"one", "two", "three"},
-		StrPtrSlice: []string{&str},
-		NilWith:     &str,
+		String:     "yeppas",
+		Boolean:    false,
+		Int:        -17,
+		Uint:       28362,
+		Float:      38.2223,
+		NoInc:      "noooop",
+		StrSlice:   []string{"one", "two", "three"},
+		IntSlice:   []int{1, 2, 3},
+		FloatSlice: []float64{1, 2, 3},
+		NilWith:    &str,
+		Struct: inner{
+			P1:   "Param 1",
+			P2:   "Param 2",
+			Data: true,
+			Inner2: inner2{
+				P2:   "Inner param 2",
+				P1:   "Inner param 1",
+				Data: false,
+			},
+		},
+		Map: map[string]float64{
+			"one": 1,
+			"two": 2,
+		},
 	}
 
 	fmt.Print(icl.NewEncoder(v))
