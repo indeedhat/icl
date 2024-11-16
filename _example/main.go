@@ -14,6 +14,7 @@ func main() {
 		true_var = true
 		false_var = false
 		int_var = 39283
+		float_var = 3.14.
 		array_var = ["some", "data"]
 		# comment
 		map_var = {

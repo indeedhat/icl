@@ -22,7 +22,7 @@ func NewParser(lex *Lexer) *Parser {
 	}
 
 	p.registerPrefixParser(TknIdent, p.parseIdentifier)
-	p.registerPrefixParser(TknInt, p.parseIntegerNode)
+	p.registerPrefixParser(TknInt, p.parseNumberNode)
 	p.registerPrefixParser(TknNull, p.parseNullNode)
 	p.registerPrefixParser(TknTrue, p.parseBooleanNode)
 	p.registerPrefixParser(TknFalse, p.parseBooleanNode)

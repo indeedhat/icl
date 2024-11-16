@@ -2,7 +2,6 @@ package icl
 
 import (
 	"slices"
-	"strconv"
 )
 
 func (p *Parser) parseExpression(allowed ...TokenType) Node {
@@ -107,19 +106,12 @@ func (p *Parser) parseStringNode() Node {
 	return &StringNode{Token: p.curToken, Value: p.curToken.Literal}
 }
 
-// parseIntegerNode parses a token as an integer literal expression
-func (p *Parser) parseIntegerNode() Node {
-	expr := &IntegerNode{Token: p.curToken}
-
-	value, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
-	if err != nil {
-		p.errorf("could not parse %q as integer", p.curToken.Literal)
-		return nil
+// parseNumberNode parses a token as an integer literal expression
+func (p *Parser) parseNumberNode() Node {
+	return &NumberNode{
+		Token: p.curToken,
+		Value: p.curToken.Literal,
 	}
-
-	expr.Value = value
-
-	return expr
 }
 
 // parseIdentifier parses an identifier token into an expression

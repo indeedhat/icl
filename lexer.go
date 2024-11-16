@@ -218,9 +218,17 @@ func (l *Lexer) readBlockComment() string {
 
 // readNumber reads a numeric value from the input string
 func (l *Lexer) readNumber() string {
+	var isFloat bool
 	pos := l.pos
 
-	for isDigit(l.peekChar()) {
+	for isDigit(l.peekChar()) || l.peekChar() == '.' {
+		if l.peekChar() == '.' {
+			if isFloat {
+				break
+			}
+			isFloat = true
+		}
+
 		l.readChar()
 	}
 

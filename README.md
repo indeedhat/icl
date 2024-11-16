@@ -3,6 +3,8 @@
 Inspired by hcl and nginx's config languages this is pretty much just a stripped down version that does the data format
 part without any of the complex logic
 
+It attempts to be somewhat tollerent of invalid illegal tokens where possible
+
 ## Literals
 ### String
 ```hcl
@@ -13,6 +15,11 @@ part without any of the complex logic
 ### Integer
 ```hcl
 102836 # basic ints only atm
+```
+
+### Float
+```hcl
+102836.112
 ```
 
 ### Boolean

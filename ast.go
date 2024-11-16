@@ -54,22 +54,22 @@ func (n *Identifier) TokenLiteral() string {
 
 var _ Node = (*Identifier)(nil)
 
-type IntegerNode struct {
+type NumberNode struct {
 	Token Token
-	Value int64
+	Value string
 }
 
 // String implements Node
-func (n *IntegerNode) String() string {
+func (n *NumberNode) String() string {
 	return n.Token.Literal
 }
 
 // TokenNode implements Node
-func (n *IntegerNode) TokenLiteral() string {
+func (n *NumberNode) TokenLiteral() string {
 	return n.Token.Literal
 }
 
-var _ Node = (*IntegerNode)(nil)
+var _ Node = (*NumberNode)(nil)
 
 type StringNode struct {
 	Token Token
