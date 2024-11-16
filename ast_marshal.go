@@ -80,11 +80,26 @@ func (e encoder) buildNode(tag string, rf reflect.StructField, rv reflect.Value)
 		var elems []Node
 
 		for i := 0; i < rv.Len(); i++ {
-			node, err := e.buildPrimativeNode(tag, rv.Type().Elem().Kind(), rv.Index(i))
+			var (
+				node Node
+				err  error
+			)
+
+			if rv.Type().Elem().Kind() == reflect.Struct {
+				node, err = e.buildStructNode(tag, rv.Index(i))
+			} else {
+				node, err = e.buildPrimativeNode(tag, rv.Type().Elem().Kind(), rv.Index(i))
+			}
 			if err != nil {
 				return nil, err
 			}
 			elems = append(elems, node)
+		}
+
+		if rv.Type().Elem().Kind() == reflect.Struct {
+			return &CollectionNode{
+				Elements: elems,
+			}, nil
 		}
 
 		return &AssignNode{
@@ -93,45 +108,7 @@ func (e encoder) buildNode(tag string, rf reflect.StructField, rv reflect.Value)
 		}, nil
 
 	case reflect.Struct:
-		var (
-			params []Token
-			body   []Node
-		)
-
-		for i := 0; i < rv.NumField(); i++ {
-			value := rv.Field(i)
-			field := rv.Type().Field(i)
-
-			tag := field.Tag.Get(`icl`)
-			if tag == "" {
-				continue
-			}
-
-			if tag == ".param" {
-				if field.Type.Kind() != reflect.String {
-					return nil, errors.New("block params can only be of type string ")
-				}
-				params = append(params, Token{
-					Literal: value.Interface().(string),
-				})
-				continue
-			}
-
-			n, err := e.buildNode(tag, field, value)
-			if err != nil {
-				return nil, err
-			}
-
-			body = append(body, n)
-		}
-
-		return &BlockNode{
-			Token:      Token{Literal: tag},
-			Parameters: params,
-			Body: &BlockBodyNode{
-				Nodes: body,
-			},
-		}, nil
+		return e.buildStructNode(tag, rv)
 
 	case reflect.Map:
 		elems := make(map[Node]Node)
@@ -181,4 +158,46 @@ func (e encoder) buildPrimativeNode(tag string, rk reflect.Kind, rv reflect.Valu
 	}
 
 	return nil, errors.New("invalid kind " + rk.String())
+}
+
+func (e encoder) buildStructNode(tag string, rv reflect.Value) (Node, error) {
+	var (
+		params []Token
+		body   []Node
+	)
+
+	for i := 0; i < rv.NumField(); i++ {
+		value := rv.Field(i)
+		field := rv.Type().Field(i)
+
+		tag := field.Tag.Get(`icl`)
+		if tag == "" {
+			continue
+		}
+
+		if tag == ".param" {
+			if field.Type.Kind() != reflect.String {
+				return nil, errors.New("block params can only be of type string ")
+			}
+			params = append(params, Token{
+				Literal: value.Interface().(string),
+			})
+			continue
+		}
+
+		n, err := e.buildNode(tag, field, value)
+		if err != nil {
+			return nil, err
+		}
+
+		body = append(body, n)
+	}
+
+	return &BlockNode{
+		Token:      Token{Literal: tag},
+		Parameters: params,
+		Body: &BlockBodyNode{
+			Nodes: body,
+		},
+	}, nil
 }

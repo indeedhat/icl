@@ -61,19 +61,20 @@ type inner2 struct {
 }
 
 type t struct {
-	String     string             `icl:"string"`
-	Boolean    bool               `icl:"boolean"`
-	Nil        *string            `icl:"nullable"`
-	NilWith    *string            `icl:"nullable_with_val"`
-	Int        int8               `icl:"integer"`
-	Uint       uint               `icl:"unsigned_integer"`
-	Float      float32            `icl:"float.2"`
-	StrSlice   []string           `icl:"string_slice"`
-	IntSlice   []int              `icl:"int_slice"`
-	FloatSlice []float64          `icl:"float_slice.3"`
-	Struct     inner              `icl:"struct"`
-	Map        map[string]float64 `icl:"float_map.2"`
-	NoInc      string
+	String      string             `icl:"string"`
+	Boolean     bool               `icl:"boolean"`
+	Nil         *string            `icl:"nullable"`
+	NilWith     *string            `icl:"nullable_with_val"`
+	Int         int8               `icl:"integer"`
+	Uint        uint               `icl:"unsigned_integer"`
+	Float       float32            `icl:"float.2"`
+	StrSlice    []string           `icl:"string_slice"`
+	IntSlice    []int              `icl:"int_slice"`
+	FloatSlice  []float64          `icl:"float_slice.3"`
+	Struct      inner              `icl:"struct"`
+	Map         map[string]float64 `icl:"float_map.2"`
+	StructSlice []inner2           `icl:"multi_block"`
+	NoInc       string
 }
 
 func marshal() {
@@ -102,6 +103,18 @@ func marshal() {
 		Map: map[string]float64{
 			"one": 1,
 			"two": 2,
+		},
+		StructSlice: []inner2{
+			{
+				P1:   "p1",
+				P2:   "p2",
+				Data: true,
+			},
+			{
+				P1:   "p1",
+				P2:   "p2",
+				Data: false,
+			},
 		},
 	}
 

@@ -133,6 +133,9 @@ type SliceNode struct {
 
 // String implements Node
 func (a *SliceNode) String() string {
+	if len(a.Elements) == 0 {
+		return "[]"
+	}
 	var buf bytes.Buffer
 	buf.WriteString("[")
 
@@ -155,6 +158,35 @@ func (a *SliceNode) TokenLiteral() string {
 }
 
 var _ Node = (*SliceNode)(nil)
+
+type CollectionNode struct {
+	Elements []Node
+}
+
+// String implements Node
+func (a *CollectionNode) String() string {
+	if len(a.Elements) == 0 {
+		return ""
+	}
+
+	var buf bytes.Buffer
+
+	for i, elem := range a.Elements {
+		buf.WriteString(elem.String())
+		if i < len(a.Elements)-1 {
+			buf.WriteString("\n")
+		}
+	}
+
+	return buf.String()
+}
+
+// TokenLiteral implements Node
+func (a *CollectionNode) TokenLiteral() string {
+	return ""
+}
+
+var _ Node = (*CollectionNode)(nil)
 
 type MapNode struct {
 	Token    Token
