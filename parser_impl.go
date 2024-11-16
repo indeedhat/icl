@@ -143,8 +143,8 @@ func (p *Parser) parseIdentifier() Node {
 	}
 }
 
-func (p *Parser) parseArrayNode() Node {
-	return &ArrayNode{
+func (p *Parser) parseSliceNode() Node {
+	return &SliceNode{
 		Token:    p.curToken,
 		Elements: p.parseListEntries(TknRBracket),
 	}

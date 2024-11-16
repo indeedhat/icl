@@ -61,7 +61,7 @@ type NumberNode struct {
 
 // String implements Node
 func (n *NumberNode) String() string {
-	return n.Token.Literal
+	return n.Value
 }
 
 // TokenNode implements Node
@@ -78,7 +78,7 @@ type StringNode struct {
 
 // String implements Node
 func (n *StringNode) String() string {
-	return `"` + n.Token.Literal + `"`
+	return `"` + n.Value + `"`
 }
 
 // TokenNode implements Node
@@ -95,7 +95,11 @@ type BooleanNode struct {
 
 // String implements Node
 func (n *BooleanNode) String() string {
-	return n.Token.Literal
+	if n.Value {
+		return "true"
+	}
+
+	return "false"
 }
 
 // TokenNode implements Node
@@ -111,7 +115,7 @@ type NullNode struct {
 
 // String implements Node
 func (n *NullNode) String() string {
-	return "NULL"
+	return "null"
 }
 
 // TokenLiteral implements Node
@@ -121,13 +125,13 @@ func (n *NullNode) TokenLiteral() string {
 
 var _ Node = (*NullNode)(nil)
 
-type ArrayNode struct {
+type SliceNode struct {
 	Token    Token
 	Elements []Node
 }
 
 // String implements Node
-func (a *ArrayNode) String() string {
+func (a *SliceNode) String() string {
 	var buf bytes.Buffer
 	buf.WriteString("[")
 
@@ -145,11 +149,11 @@ func (a *ArrayNode) String() string {
 }
 
 // TokenLiteral implements Node
-func (a *ArrayNode) TokenLiteral() string {
+func (a *SliceNode) TokenLiteral() string {
 	return a.Token.Literal
 }
 
-var _ Node = (*ArrayNode)(nil)
+var _ Node = (*SliceNode)(nil)
 
 type MapNode struct {
 	Token    Token

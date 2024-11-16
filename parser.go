@@ -27,7 +27,7 @@ func NewParser(lex *Lexer) *Parser {
 	p.registerPrefixParser(TknTrue, p.parseBooleanNode)
 	p.registerPrefixParser(TknFalse, p.parseBooleanNode)
 	p.registerPrefixParser(TknString, p.parseStringNode)
-	p.registerPrefixParser(TknLBracket, p.parseArrayNode)
+	p.registerPrefixParser(TknLBracket, p.parseSliceNode)
 	p.registerPrefixParser(TknLBrace, p.parseMapNode)
 
 	// populate cur/next token fields

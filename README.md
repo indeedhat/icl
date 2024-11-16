@@ -88,3 +88,4 @@ my_key = $var
 
 ## Known issues
 - [ ] parser is probably too tolerant of issues
+- [ ] slices do not support pointers
