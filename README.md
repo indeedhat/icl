@@ -133,7 +133,7 @@ my_key = env(HOME)
 </table>
 
 ## Marshaling data
-Data can be marshaled directly from a strict into an ICL document
+Data can be marshaled directly from a struct into an ICL document
 
 - Only structs can be marshaled
 - ICL is opt-in, only fields marked with an icl tag will be included in the document
@@ -182,7 +182,7 @@ my_var = env(MY_ENVAR)
 */
 ```
 
-## ICL strict tags
+## ICL struct tags
 - "my_var" the icl struct tag is used to define the identifier for a variable/block in the ICL document
 - "my_float.2" the /.\n/ suffix is used to define the precision level of a float when marshaled into an ICL document
 - ".param" is used to define a field as a param on its parent block, params will get marshaled/unmarshaled in the order they appear
