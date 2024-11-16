@@ -48,19 +48,7 @@ func parse() {
 	spew.Dump(ast)
 }
 
-type inner struct {
-	P1     string `icl:".param"`
-	P2     string `icl:".param"`
-	Data   bool   `icl:"data"`
-	Inner2 inner2 `icl:"inner_2"`
-}
-type inner2 struct {
-	P1   string `icl:".param"`
-	P2   string `icl:".param"`
-	Data bool   `icl:"data"`
-}
-
-type t struct {
+type config struct {
 	String      string             `icl:"string"`
 	Boolean     bool               `icl:"boolean"`
 	Nil         *string            `icl:"nullable"`
@@ -75,11 +63,25 @@ type t struct {
 	Map         map[string]float64 `icl:"float_map.2"`
 	StructSlice []inner2           `icl:"multi_block"`
 	NoInc       string
+	Envar       string `icl:"envar,env(MY_ENVAR)"`
+}
+
+type inner struct {
+	P1     string `icl:".param"`
+	P2     string `icl:".param"`
+	Data   bool   `icl:"data"`
+	Inner2 inner2 `icl:"inner_2"`
+}
+
+type inner2 struct {
+	P1   string `icl:".param"`
+	P2   string `icl:".param"`
+	Data bool   `icl:"data"`
 }
 
 func marshal() {
 	str := "my string"
-	v := t{
+	v := config{
 		String:     "yeppas",
 		Boolean:    false,
 		Int:        -17,
@@ -118,5 +120,5 @@ func marshal() {
 		},
 	}
 
-	fmt.Print(icl.NewEncoder(v))
+	fmt.Print(icl.MarshalString(v))
 }

@@ -4,13 +4,16 @@ import (
 	"errors"
 	"reflect"
 	"strconv"
-	"strings"
 )
 
-type encoder struct {
+// Encoder handles the transation of a strinc into an Ast
+type Encoder struct {
+	ast *Ast
+	rv  reflect.Value
 }
 
-func NewEncoder(v any) (*Ast, error) {
+// NewEncoder creates a new instance of the Encoder struct used to transalate a go struct into an icl Ast
+func NewEncoder(v any) (*Encoder, error) {
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Struct || (rv.Kind() == reflect.Pointer && rv.Elem().Kind() != reflect.Struct) {
 		return nil, errors.New("can only encode struct and *struct values")
@@ -20,16 +23,23 @@ func NewEncoder(v any) (*Ast, error) {
 		rv = rv.Elem()
 	}
 
-	a := &Ast{}
-	e := encoder{}
+	return &Encoder{&Ast{}, rv}, nil
+}
 
-	for i := 0; i < rv.NumField(); i++ {
-		value := rv.Field(i)
-		rf := rv.Type().Field(i)
+// Encode runs the encoder logic and returns the resulting Ast
+func (e Encoder) Encode(v any) (*Ast, error) {
+	for i := 0; i < e.rv.NumField(); i++ {
+		value := e.rv.Field(i)
+		rf := e.rv.Type().Field(i)
 
-		tag := rf.Tag.Get(`icl`)
-		if tag == "" {
+		tagString := rf.Tag.Get(`icl`)
+		if tagString == "" {
 			continue
+		}
+
+		tag, err := parseTags(tagString)
+		if err != nil {
+			return nil, err
 		}
 
 		n, err := e.buildNode(tag, rf, value)
@@ -37,18 +47,18 @@ func NewEncoder(v any) (*Ast, error) {
 			return nil, err
 		}
 
-		a.Nodes = append(a.Nodes, n)
+		e.ast.Nodes = append(e.ast.Nodes, n)
 	}
 
-	return a, nil
+	return e.ast, nil
 }
 
-func (e encoder) buildNode(tag string, rf reflect.StructField, rv reflect.Value) (Node, error) {
+func (e Encoder) buildNode(tag *tags, rf reflect.StructField, rv reflect.Value) (Node, error) {
 	rk := rf.Type.Kind()
 	if rk == reflect.Pointer {
 		if rv.IsNil() {
 			return &AssignNode{
-				Name:  &Identifier{Token: Token{Type: TknIdent, Literal: tag}, Value: tag},
+				Name:  &Identifier{Token: Token{Type: TknIdent, Literal: tag.key}, Value: tag.key},
 				Value: &NullNode{},
 			}, nil
 		}
@@ -63,20 +73,26 @@ func (e encoder) buildNode(tag string, rf reflect.StructField, rv reflect.Value)
 		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
 		reflect.Float32, reflect.Float64:
-		if tag == ".param" {
+		if tag.isParam {
 			return nil, errors.New("root struct cannot contain params")
 		}
+
 		v, err := e.buildPrimativeNode(tag, rk, rv)
 		if err != nil {
 			return nil, err
 		}
+
 		return &AssignNode{
-			Name:  &Identifier{Token: Token{Type: TknIdent, Literal: tag}, Value: tag},
+			Name:  &Identifier{Token: Token{Type: TknIdent, Literal: tag.key}, Value: tag.key},
 			Value: v,
 		}, nil
 
 	// complex types
 	case reflect.Slice:
+		if tag.env != "" {
+			return nil, errors.New("env() macro not allowed on slice field")
+		}
+
 		var elems []Node
 
 		for i := 0; i < rv.Len(); i++ {
@@ -103,14 +119,22 @@ func (e encoder) buildNode(tag string, rf reflect.StructField, rv reflect.Value)
 		}
 
 		return &AssignNode{
-			Name:  &Identifier{Token: Token{Type: TknIdent, Literal: tag}, Value: tag},
+			Name:  &Identifier{Token: Token{Type: TknIdent, Literal: tag.key}, Value: tag.key},
 			Value: &SliceNode{Elements: elems},
 		}, nil
 
 	case reflect.Struct:
+		if tag.env != "" {
+			return nil, errors.New("env() macro not allowed on struct field")
+		}
+
 		return e.buildStructNode(tag, rv)
 
 	case reflect.Map:
+		if tag.env != "" {
+			return nil, errors.New("env() macro not allowed on map field")
+		}
+
 		elems := make(map[Node]Node)
 
 		for _, key := range rv.MapKeys() {
@@ -123,7 +147,7 @@ func (e encoder) buildNode(tag string, rf reflect.StructField, rv reflect.Value)
 		}
 
 		return &AssignNode{
-			Name: &Identifier{Token: Token{Type: TknIdent, Literal: tag}, Value: tag},
+			Name: &Identifier{Token: Token{Type: TknIdent, Literal: tag.key}, Value: tag.key},
 			Value: &MapNode{
 				Elements: elems,
 			},
@@ -133,7 +157,10 @@ func (e encoder) buildNode(tag string, rf reflect.StructField, rv reflect.Value)
 	return nil, errors.New("cant convert " + rk.String())
 }
 
-func (e encoder) buildPrimativeNode(tag string, rk reflect.Kind, rv reflect.Value) (Node, error) {
+func (e Encoder) buildPrimativeNode(tag *tags, rk reflect.Kind, rv reflect.Value) (Node, error) {
+	if tag.env != "" {
+		return &EnvarNode{Identifier: &Identifier{Value: tag.env}}, nil
+	}
 	switch rk {
 	case reflect.String:
 		return &StringNode{Value: rv.Interface().(string)}, nil
@@ -144,23 +171,13 @@ func (e encoder) buildPrimativeNode(tag string, rk reflect.Kind, rv reflect.Valu
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		return &NumberNode{Value: strconv.FormatUint(rv.Uint(), 10)}, nil
 	case reflect.Float32, reflect.Float64:
-		precision := -1
-		if pos := strings.LastIndex(tag, "."); pos != -1 {
-			i, err := strconv.Atoi(tag[pos+1:])
-			if err != nil || i < 1 {
-				return nil, errors.New("invalid tag " + tag)
-			}
-			precision = i
-			tag = tag[:pos]
-		}
-
-		return &NumberNode{Value: strconv.FormatFloat(rv.Float(), 'f', precision, 64)}, nil
+		return &NumberNode{Value: strconv.FormatFloat(rv.Float(), 'f', tag.precision, 64)}, nil
 	}
 
 	return nil, errors.New("invalid kind " + rk.String())
 }
 
-func (e encoder) buildStructNode(tag string, rv reflect.Value) (Node, error) {
+func (e Encoder) buildStructNode(tag *tags, rv reflect.Value) (Node, error) {
 	var (
 		params []Token
 		body   []Node
@@ -170,12 +187,17 @@ func (e encoder) buildStructNode(tag string, rv reflect.Value) (Node, error) {
 		value := rv.Field(i)
 		field := rv.Type().Field(i)
 
-		tag := field.Tag.Get(`icl`)
-		if tag == "" {
+		tagString := field.Tag.Get(`icl`)
+		if tagString == "" {
 			continue
 		}
 
-		if tag == ".param" {
+		ftag, err := parseTags(tagString)
+		if err != nil {
+			return nil, err
+		}
+
+		if ftag.isParam {
 			if field.Type.Kind() != reflect.String {
 				return nil, errors.New("block params can only be of type string ")
 			}
@@ -185,7 +207,7 @@ func (e encoder) buildStructNode(tag string, rv reflect.Value) (Node, error) {
 			continue
 		}
 
-		n, err := e.buildNode(tag, field, value)
+		n, err := e.buildNode(ftag, field, value)
 		if err != nil {
 			return nil, err
 		}
@@ -194,7 +216,7 @@ func (e encoder) buildStructNode(tag string, rv reflect.Value) (Node, error) {
 	}
 
 	return &BlockNode{
-		Token:      Token{Literal: tag},
+		Token:      Token{Literal: tag.key},
 		Parameters: params,
 		Body: &BlockBodyNode{
 			Nodes: body,

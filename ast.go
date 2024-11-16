@@ -7,8 +7,39 @@ import (
 	"strings"
 )
 
+// Node creates the shape for an Ast node
+type Node interface {
+	TokenLiteral() string
+	String() string
+}
+
+// Ast contains the Abstract Syntax Tree of an icl ducument
 type Ast struct {
 	Nodes []Node
+}
+
+// Version returns the version of the ICL document contained in the Ast
+func (n *Ast) Version() int {
+	if len(n.Nodes) == 0 {
+		return 0
+	}
+
+	assignment, ok := n.Nodes[0].(*AssignNode)
+	if !ok || assignment.Name.Value != "value" {
+		return 0
+	}
+
+	value, ok := assignment.Value.(*NumberNode)
+	if !ok {
+		return 0
+	}
+
+	i, err := strconv.ParseInt(value.Value, 10, 64)
+	if err != nil {
+		return 0
+	}
+
+	return int(i)
 }
 
 // String implements Node
@@ -22,6 +53,17 @@ func (n *Ast) String() string {
 	return buf.String()
 }
 
+// Bytes returns the byte array representaiton of the output icl string
+func (n *Ast) Bytes() []byte {
+	var buf bytes.Buffer
+
+	for _, stmt := range n.Nodes {
+		buf.WriteString(stmt.String() + "\n")
+	}
+
+	return buf.Bytes()
+}
+
 // TokenLiteral implements Node
 func (n *Ast) TokenLiteral() string {
 	if len(n.Nodes) == 0 {
@@ -32,11 +74,6 @@ func (n *Ast) TokenLiteral() string {
 }
 
 var _ Node = (*Ast)(nil)
-
-type Node interface {
-	TokenLiteral() string
-	String() string
-}
 
 type Identifier struct {
 	Token
@@ -132,14 +169,14 @@ type SliceNode struct {
 }
 
 // String implements Node
-func (a *SliceNode) String() string {
-	if len(a.Elements) == 0 {
+func (n *SliceNode) String() string {
+	if len(n.Elements) == 0 {
 		return "[]"
 	}
 	var buf bytes.Buffer
 	buf.WriteString("[")
 
-	for i, elem := range a.Elements {
+	for i, elem := range n.Elements {
 		if i > 0 {
 			buf.WriteString(", ")
 		}
@@ -153,8 +190,8 @@ func (a *SliceNode) String() string {
 }
 
 // TokenLiteral implements Node
-func (a *SliceNode) TokenLiteral() string {
-	return a.Token.Literal
+func (n *SliceNode) TokenLiteral() string {
+	return n.Token.Literal
 }
 
 var _ Node = (*SliceNode)(nil)
@@ -164,16 +201,16 @@ type CollectionNode struct {
 }
 
 // String implements Node
-func (a *CollectionNode) String() string {
-	if len(a.Elements) == 0 {
+func (n *CollectionNode) String() string {
+	if len(n.Elements) == 0 {
 		return ""
 	}
 
 	var buf bytes.Buffer
 
-	for i, elem := range a.Elements {
+	for i, elem := range n.Elements {
 		buf.WriteString(elem.String())
-		if i < len(a.Elements)-1 {
+		if i < len(n.Elements)-1 {
 			buf.WriteString("\n")
 		}
 	}
@@ -182,7 +219,7 @@ func (a *CollectionNode) String() string {
 }
 
 // TokenLiteral implements Node
-func (a *CollectionNode) TokenLiteral() string {
+func (n *CollectionNode) TokenLiteral() string {
 	return ""
 }
 
