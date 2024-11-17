@@ -61,14 +61,25 @@ func (d *Decoder) assign(node *AssignNode, target reflect.Value) error {
 
 	rv, rf := *v, *f
 
+	var originalRv reflect.Value
 	rk := rf.Type.Kind()
 	if rk == reflect.Pointer {
 		if _, ok := node.Value.(*NullNode); ok {
 			return nil
 		}
 
+		originalRv = rv
 		rk = rf.Type.Elem().Kind()
+		if rv.IsZero() {
+			rv.Set(reflect.New(rv.Type().Elem()))
+		}
 		rv = rv.Elem()
+
+		defer func() {
+			if rv.IsZero() {
+				originalRv.Set(reflect.Zero(originalRv.Type()))
+			}
+		}()
 	}
 
 	switch rk {
@@ -79,7 +90,7 @@ func (d *Decoder) assign(node *AssignNode, target reflect.Value) error {
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
 		reflect.Float32, reflect.Float64:
 
-		d.assignPrimitiveNode(node.Value, rv, rv.Kind(), false)
+		d.assignPrimitiveNode(node.Value, rv, rk, false)
 
 	// complex types
 	case reflect.Slice:
