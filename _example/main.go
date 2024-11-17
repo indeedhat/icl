@@ -145,6 +145,16 @@ func unmarshal() {
 			data = true
 		}
 	}
+
+	multi_block "entry" "1" {
+		data = true
+	}
+	multi_block "entry" "2" {
+		data = true
+	}
+	multi_block "entry" "3" {
+		data = true
+	}
 	`
 
 	ast, err := icl.Parse(document)

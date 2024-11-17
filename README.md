@@ -239,6 +239,7 @@ To come when i actually implement unmarshaling
 
 ## Known issues
 - [ ] parser is probably too tolerant of issues
+- [ ] error messages kinda suck
 
 ## Under consideration
 ### Marshalling/Unmarshaling comments

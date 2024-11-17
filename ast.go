@@ -50,7 +50,7 @@ func (a Ast) Unmarshal(v any) error {
 		return &InvalidUnmarshalError{reflect.TypeOf(v)}
 	}
 
-	d := decoder{a, rv.Elem(), 0}
+	d := NewDecoder(a, rv.Elem())
 	return d.decode()
 }
 

@@ -2,6 +2,7 @@ package icl
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"reflect"
 	"strconv"
@@ -24,34 +25,24 @@ func (e *InvalidUnmarshalError) Error() string {
 	return "icl: Unmarshal(nil " + e.Type.String() + ")"
 }
 
-type decoder struct {
+type Decoder struct {
 	ast          Ast
 	target       reflect.Value
 	paramCounter int
+	blockMap     map[reflect.Value]map[string]struct{}
 }
 
-func (d *decoder) decode() error {
+func NewDecoder(a Ast, target reflect.Value) *Decoder {
+	return &Decoder{
+		ast:      a,
+		target:   target,
+		blockMap: make(map[reflect.Value]map[string]struct{}),
+	}
+}
+
+func (d *Decoder) decode() error {
 	for _, node := range d.ast.Nodes {
-		var err error
-
-		switch n := node.(type) {
-		case *AssignNode:
-			err = d.assign(n, d.target)
-		case *BlockNode:
-			v, _, err := d.findTargetField(&Identifier{Value: n.Token.Literal}, d.target)
-			if err != nil {
-				if errors.Is(errFieldNotFound, err) {
-					return nil
-				}
-				return err
-			}
-
-			err = d.block(n, *v)
-		default:
-			// NB to keep icl as fault tollerent as possible any other node types in the ast will be ignored
-		}
-
-		if err != nil {
+		if err := d.node(node, d.target); err != nil {
 			return err
 		}
 	}
@@ -59,7 +50,7 @@ func (d *decoder) decode() error {
 	return nil
 }
 
-func (d *decoder) assign(node *AssignNode, target reflect.Value) error {
+func (d *Decoder) assign(node *AssignNode, target reflect.Value) error {
 	v, f, err := d.findTargetField(node.Name, target)
 	if err != nil {
 		if errors.Is(errFieldNotFound, err) {
@@ -106,20 +97,39 @@ func (d *decoder) assign(node *AssignNode, target reflect.Value) error {
 			}
 		}
 
-	case reflect.Struct:
+	case reflect.Map:
 		panic("not implemented")
 	}
 
 	return nil
 }
 
-func (d *decoder) block(node *BlockNode, target reflect.Value) error {
+func (d *Decoder) block(node *BlockNode, rv reflect.Value) error {
 	pc := 0
 	d.paramCounter = pc
 
+	// track block assignments to make sure we aren't trying to re assign
+	if rv.Kind() != reflect.Slice {
+		if _, ok := d.blockMap[rv][node.TokenLiteral()]; ok {
+			return fmt.Errorf("multiple \"%s\" blocks found for field that is not a slice", node.TokenLiteral())
+		}
+
+		if _, ok := d.blockMap[rv]; !ok {
+			d.blockMap[rv] = make(map[string]struct{})
+		}
+		d.blockMap[rv][node.TokenLiteral()] = struct{}{}
+	}
+
+	var originalTarget reflect.Value
+	if rv.Kind() == reflect.Slice {
+		newTgt := reflect.New(rv.Type().Elem()).Elem()
+		originalTarget = rv
+		rv = newTgt
+	}
+
 	// params
 	for _, param := range node.Parameters {
-		v, _, err := d.findTargetField(&Identifier{Value: ".param"}, target)
+		v, _, err := d.findTargetField(&Identifier{Value: ".param"}, rv)
 		if err != nil {
 			if errors.Is(errFieldNotFound, err) {
 				continue
@@ -140,34 +150,42 @@ func (d *decoder) block(node *BlockNode, target reflect.Value) error {
 
 	// body
 	for _, node := range node.Body.Nodes {
-		var err error
-
-		switch n := node.(type) {
-		case *AssignNode:
-			err = d.assign(n, target)
-		case *BlockNode:
-			v, _, err := d.findTargetField(&Identifier{Value: n.Token.Literal}, target)
-			if err != nil {
-				if errors.Is(errFieldNotFound, err) {
-					return nil
-				}
-				return err
-			}
-
-			err = d.block(n, *v)
-		default:
-			// NB to keep icl as fault tollerent as possible any other node types in the ast will be ignored
-		}
-
-		if err != nil {
+		if err := d.node(node, rv); err != nil {
 			return err
 		}
+	}
+
+	if originalTarget.Kind() == reflect.Slice {
+		originalTarget.Set(reflect.Append(originalTarget, rv))
 	}
 
 	return nil
 }
 
-func (d *decoder) findTargetField(ident *Identifier, target reflect.Value) (*reflect.Value, *reflect.StructField, error) {
+func (d *Decoder) node(node Node, target reflect.Value) error {
+	var err error
+
+	switch n := node.(type) {
+	case *AssignNode:
+		err = d.assign(n, target)
+	case *BlockNode:
+		v, _, err := d.findTargetField(&Identifier{Value: n.Token.Literal}, target)
+		if err != nil {
+			if errors.Is(errFieldNotFound, err) {
+				return nil
+			}
+			return err
+		}
+
+		err = d.block(n, *v)
+	default:
+		// NB to keep icl as fault tollerent as possible any other node types in the ast will be ignored
+	}
+
+	return err
+}
+
+func (d *Decoder) findTargetField(ident *Identifier, target reflect.Value) (*reflect.Value, *reflect.StructField, error) {
 	var paramCounter int
 	for i := 0; i < target.NumField(); i++ {
 		// TODO: this needs a cache so i don't have to keep parsing the struct fields each time
@@ -200,7 +218,7 @@ func (d *decoder) findTargetField(ident *Identifier, target reflect.Value) (*ref
 	return nil, nil, errFieldNotFound
 }
 
-func (d *decoder) assignPrimitiveNode(node Node, rv reflect.Value, rk reflect.Kind, isSlice bool) error {
+func (d *Decoder) assignPrimitiveNode(node Node, rv reflect.Value, rk reflect.Kind, isSlice bool) error {
 	switch v := node.(type) {
 	case *EnvarNode:
 		val := os.Getenv(v.Identifier.Value)
