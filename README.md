@@ -132,6 +132,16 @@ my_key = env(HOME)
     </tr>
 </table>
 
+## Supported types
+- string
+- bool
+- int, int8, int16, int32, int64
+- uint, uint8, uint16, uint32, uint64
+- float32, float64
+- slice (no pointer values)
+- map (string keys only)
+- struct
+
 ## Marshaling data
 Data can be marshaled directly from a struct into an ICL document
 

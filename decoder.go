@@ -87,9 +87,6 @@ func (d *Decoder) assign(node *AssignNode, target reflect.Value) error {
 		if !ok {
 			return errors.New("node is not a slice")
 		}
-		if rv.Kind() != reflect.Slice {
-			return errors.New("invalid node " + rv.Kind().String())
-		}
 
 		for _, entry := range val.Elements {
 			if err := d.assignPrimitiveNode(entry, rv, rv.Type().Elem().Kind(), true); err != nil {
@@ -98,7 +95,27 @@ func (d *Decoder) assign(node *AssignNode, target reflect.Value) error {
 		}
 
 	case reflect.Map:
-		panic("not implemented")
+		val, ok := node.Value.(*MapNode)
+		if !ok {
+			return errors.New("node is not a map")
+		}
+
+		for key, value := range val.Elements {
+			t := reflect.New(rv.Elem().Type())
+
+			var isSlice bool
+			rt := rv.Elem().Type()
+			if rt.Kind() == reflect.Slice {
+				rt = rt.Elem()
+				isSlice = true
+			}
+
+			if err := d.assignPrimitiveNode(value, t, rt.Kind(), isSlice); err != nil {
+				return err
+			}
+
+			rv.SetMapIndex(reflect.ValueOf(key.(*StringNode).Value), t)
+		}
 	}
 
 	return nil

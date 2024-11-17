@@ -10,8 +10,8 @@ import (
 
 func main() {
 	// parse()
-	// marshal()
-	unmarshal()
+	marshal()
+	// unmarshal()
 }
 
 func parse() {
@@ -120,6 +120,10 @@ func marshal() {
 				Data: false,
 			},
 		},
+		StructPointer: &inner2{
+			P1:   "data",
+			Data: true,
+		},
 	}
 
 	fmt.Print(icl.MarshalString(v))
@@ -160,6 +164,8 @@ func unmarshal() {
 	block_pointer "entry" "3" {
 		data = true
 	}
+
+	float_map = {"1": 1.0, "2": 2}
 	`
 
 	ast, err := icl.Parse(document)
