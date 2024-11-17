@@ -125,6 +125,9 @@ func (d *Decoder) block(node *BlockNode, rv reflect.Value) error {
 		newTgt := reflect.New(rv.Type().Elem()).Elem()
 		originalTarget = rv
 		rv = newTgt
+	} else if rv.Kind() == reflect.Pointer && rv.IsNil() {
+		rv.Set(reflect.New(rv.Type().Elem()))
+		rv = rv.Elem()
 	}
 
 	// params
