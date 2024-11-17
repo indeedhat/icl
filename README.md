@@ -192,6 +192,34 @@ my_var = env(MY_ENVAR)
 */
 ```
 
+## Marshaling data
+Data can be unmalhaled directly into a struct from an ICL document
+
+the same rule apply as unmarshaling
+```go
+type MyConfig struct {
+    Version    int `icl:"version"`
+    MyVar      string `icl:"my_var"`
+    Unexported string
+}
+
+document = `
+version = 2
+my_var = "data"
+`
+
+c := MyConfig{Unexported: "private"}
+
+_ = icl.UnmarshalString(document, &c)
+
+/* Output:
+c.Version == 2
+c.MyVar == "data"
+c.Unexported == "private"
+*/
+
+```
+
 ## ICL struct tags
 - "my_var" the icl struct tag is used to define the identifier for a variable/block in the ICL document
 - "my_float.2" the /.\n/ suffix is used to define the precision level of a float when marshaled into an ICL document
@@ -242,7 +270,36 @@ _ = icl.MarshalFile(c, "my/save/path.icl")
 ```
 
 ### Unmarshaling versions
-To come when i actually implement unmarshaling
+ICL provides a helper method `UnmarshalVersion(data []byte, versions map[int]any)` for handling multi version
+unmarshaling
+
+```go
+type MyConfigV1 struct {
+    Version    int `icl:"version"`
+    ...
+}
+type MyConfigV2 struct {
+    Version    int `icl:"version"`
+    ...
+}
+
+document = `
+version = 2
+...
+`
+
+foundVersion, config, err := icl.UnmarshalVersion(
+    []byte(document),
+    map[int]any{
+        1: &MyConfigV1{},
+        2: &MyConfigV2{},
+    }
+)
+
+// foundVersion == 2
+// config == *MyConfigV2
+// err == nil
+```
 
 ## LImitations
 - Slices do not support map or pointer values
