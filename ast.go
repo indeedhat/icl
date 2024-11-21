@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -252,8 +253,16 @@ func (n *MapNode) String() string {
 
 	buf.WriteString("{\n")
 
-	for key, val := range n.Elements {
-		buf.WriteString(indent(fmt.Sprintf("%s: %s,", key.String(), val.String())) + "\n")
+	keys := make([]Node, 0, len(n.Elements))
+	for key := range n.Elements {
+		keys = append(keys, key)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i].String() < keys[j].String()
+	})
+
+	for _, key := range keys {
+		buf.WriteString(indent(fmt.Sprintf("%s: %s,", key.String(), n.Elements[key].String())) + "\n")
 	}
 
 	buf.WriteString("}")

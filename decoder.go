@@ -61,6 +61,7 @@ func (d *Decoder) assign(node *AssignNode, target reflect.Value) error {
 
 	rv, rf := *v, *f
 
+	var setErr error
 	var originalRv reflect.Value
 	rk := rf.Type.Kind()
 	if rk == reflect.Pointer {
@@ -76,7 +77,7 @@ func (d *Decoder) assign(node *AssignNode, target reflect.Value) error {
 		rv = rv.Elem()
 
 		defer func() {
-			if rv.IsZero() {
+			if setErr != nil && rv.IsZero() {
 				originalRv.Set(reflect.Zero(originalRv.Type()))
 			}
 		}()
@@ -90,7 +91,7 @@ func (d *Decoder) assign(node *AssignNode, target reflect.Value) error {
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
 		reflect.Float32, reflect.Float64:
 
-		d.assignPrimitiveNode(node.Value, rv, rk, false)
+		setErr = d.assignPrimitiveNode(node.Value, rv, rk, false)
 
 	// complex types
 	case reflect.Slice:
@@ -101,6 +102,7 @@ func (d *Decoder) assign(node *AssignNode, target reflect.Value) error {
 
 		for _, entry := range val.Elements {
 			if err := d.assignPrimitiveNode(entry, rv, rv.Type().Elem().Kind(), true); err != nil {
+				setErr = err
 				return nil
 			}
 		}
@@ -127,6 +129,9 @@ func (d *Decoder) assign(node *AssignNode, target reflect.Value) error {
 
 			rv.SetMapIndex(reflect.ValueOf(key.(*StringNode).Value), t)
 		}
+
+	default:
+		setErr = errors.New("unknown")
 	}
 
 	return nil
@@ -338,6 +343,8 @@ func (d *Decoder) assignPrimitiveNode(node Node, rv reflect.Value, rk reflect.Ki
 		default:
 			return errors.New("invalid type " + rk.String())
 		}
+	default:
+		return errors.New("invalid type " + rk.String())
 	}
 
 	return nil

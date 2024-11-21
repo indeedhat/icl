@@ -162,6 +162,7 @@ func (e Encoder) buildPrimitiveNode(tag *tags, rk reflect.Kind, rv reflect.Value
 	if tag.env != "" {
 		return &EnvarNode{Identifier: &Identifier{Value: tag.env}}, nil
 	}
+
 	switch rk {
 	case reflect.String:
 		return &StringNode{Value: rv.Interface().(string)}, nil
@@ -173,9 +174,11 @@ func (e Encoder) buildPrimitiveNode(tag *tags, rk reflect.Kind, rv reflect.Value
 		return &NumberNode{Value: strconv.FormatUint(rv.Uint(), 10)}, nil
 	case reflect.Float32, reflect.Float64:
 		return &NumberNode{Value: strconv.FormatFloat(rv.Float(), 'f', tag.precision, 64)}, nil
+	case reflect.Pointer:
+		return e.buildPrimitiveNode(tag, rv.Elem().Kind(), rv.Elem())
 	}
 
-	return nil, errors.New("invalid kind " + rk.String())
+	return nil, errors.New("invalid kind " + rk.String() + " for " + tag.key)
 }
 
 func (e Encoder) buildStructNode(tag *tags, rv reflect.Value) (Node, error) {
