@@ -3,6 +3,7 @@ package icl
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"reflect"
 	"sort"
 	"strconv"
@@ -23,11 +24,13 @@ type Ast struct {
 // Version returns the version of the ICL document contained in the Ast
 func (n *Ast) Version() int {
 	if len(n.Nodes) == 0 {
+		log.Print("no nodes")
 		return 0
 	}
 
 	assignment, ok := n.Nodes[0].(*AssignNode)
-	if !ok || assignment.Name.Value != "value" {
+	if !ok || assignment.Name.Value != "version" {
+		log.Print("bad assign")
 		return 0
 	}
 

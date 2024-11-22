@@ -9,13 +9,14 @@ import (
 )
 
 func main() {
-	// parse()
-	marshal()
+	parse()
+	// marshal()
 	// unmarshal()
 }
 
 func parse() {
-	ast, err := icl.Parse(`
+	ast, err := icl.ParseString(`
+		version = 2
 		str_var = "things"
 		null_var = null
 		true_var = true
@@ -46,6 +47,7 @@ func parse() {
 		log.Fatal(err)
 	}
 
+	log.Print(ast.Version())
 	spew.Dump(ast)
 }
 
@@ -168,7 +170,7 @@ func unmarshal() {
 	float_map = {"1": 1.0, "2": 2}
 	`
 
-	ast, err := icl.Parse(document)
+	ast, err := icl.ParseString(document)
 	if err != nil {
 		log.Fatal(err)
 	}
