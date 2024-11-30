@@ -26,7 +26,7 @@ var floatUnmarshalTests = map[string]unmarshalTest{
 	"float32 bad type": {
 		`f32 = "bad"`,
 		floatTarget{},
-		"",
+		".f32: invalid float32 type string\nline(0) pos(8)",
 	},
 	"float64 valid": {
 		`f64 = 1283.1`,
@@ -41,7 +41,7 @@ var floatUnmarshalTests = map[string]unmarshalTest{
 	"float64 bad type": {
 		`f64 = "bad"`,
 		floatTarget{},
-		"",
+		".f64: invalid float64 type string\nline(0) pos(8)",
 	},
 }
 
@@ -82,7 +82,7 @@ var floatPtrUnmarshalTests = map[string]unmarshalTest{
 	"float32 bad type": {
 		`f32 = "bad"`,
 		floatPtrTarget{},
-		"",
+		".f32: invalid float32 type string\nline(0) pos(8)",
 	},
 	"float64 valid": {
 		`f64 = 1283.1`,
@@ -97,7 +97,7 @@ var floatPtrUnmarshalTests = map[string]unmarshalTest{
 	"float64 bad type": {
 		`f64 = "bad"`,
 		floatPtrTarget{},
-		"",
+		".f64: invalid float64 type string\nline(0) pos(8)",
 	},
 }
 

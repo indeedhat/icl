@@ -52,20 +52,22 @@ func parse() {
 }
 
 type config struct {
-	String        string             `icl:"string"`
-	Boolean       bool               `icl:"boolean"`
-	Nil           *string            `icl:"nullable"`
-	NilWith       *string            `icl:"nullable_with_val"`
-	Int           int8               `icl:"integer"`
-	Uint          uint               `icl:"unsigned_integer"`
-	Float         float32            `icl:"float.2"`
-	StrSlice      []string           `icl:"string_slice"`
-	IntSlice      []int              `icl:"int_slice"`
-	FloatSlice    []float64          `icl:"float_slice.3"`
-	Struct        inner              `icl:"struct"`
-	Map           map[string]float64 `icl:"float_map.2"`
-	StructSlice   []inner2           `icl:"multi_block"`
-	StructPointer *inner2            `icl:"block_pointer"`
+	String        string              `icl:"string"`
+	Boolean       bool                `icl:"boolean"`
+	Nil           *string             `icl:"nullable"`
+	NilWith       *string             `icl:"nullable_with_val"`
+	Int           int8                `icl:"integer"`
+	Uint          uint                `icl:"unsigned_integer"`
+	Float         float32             `icl:"float.2"`
+	StrSlice      []string            `icl:"string_slice"`
+	IntSlice      []int               `icl:"int_slice"`
+	FloatSlice    []float64           `icl:"float_slice.3"`
+	FloatPtrSlice []*float64          `icl:"float_ptr_slice.3"`
+	Struct        inner               `icl:"struct"`
+	Map           map[string]float64  `icl:"float_map.2"`
+	MapPtr        map[string]*float64 `icl:"float_ptr_map.2"`
+	StructSlice   []inner2            `icl:"multi_block"`
+	StructPointer *inner2             `icl:"block_pointer"`
 	NoInc         string
 	Envar         string `icl:"envar,env(HOME)"`
 }
@@ -133,16 +135,17 @@ func marshal() {
 
 func unmarshal() {
 	document := `
-	string = "my string"
-	boolean = "-"
-	nullable = null
 	nullable_with_val = "with val"
+	string = "my string"
+	boolean = true
+	nullable = null
 	integer = -17
 	unsigned_integer = 23
 	float = 3.14
 	envar = env(HOME)
 	string_slice = ["one", "two", "three"]
 	int_slice = [1, 2, 3]
+	float_ptr_slice = [1, 2, 3.5]
 	float_slice = [1, 2, 3.5]
 
 	struct "param1" "param2" {
@@ -168,6 +171,7 @@ func unmarshal() {
 	}
 
 	float_map = {"1": 1.0, "2": 2}
+	float_ptr_map = {"1": 1.0, "2": 2}
 	`
 
 	ast, err := icl.ParseString(document)

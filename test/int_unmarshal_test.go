@@ -31,7 +31,7 @@ var intUnmarshalTests = map[string]unmarshalTest{
 	"int bad type": {
 		`i = "bad"`,
 		intTarget{I: 0},
-		"",
+		".i: invalid int type string\nline(0) pos(6)",
 	},
 	"int8 valid": {
 		`i8 = 127`,
@@ -46,12 +46,12 @@ var intUnmarshalTests = map[string]unmarshalTest{
 	"int8 bad type": {
 		`i8 = "bad"`,
 		intTarget{I8: 0},
-		"",
+		".i8: invalid int8 type string\nline(0) pos(7)",
 	},
 	"int8 too large": {
 		`i8 = 129`,
 		intTarget{I8: 0},
-		"",
+		".i8: strconv.ParseInt: parsing \"129\": value out of range\nline(0) pos(5)",
 	},
 	"int16 valid": {
 		`i16 = 32767`,
@@ -66,12 +66,12 @@ var intUnmarshalTests = map[string]unmarshalTest{
 	"int16 bad type": {
 		`i16 = "bad"`,
 		intTarget{I16: 0},
-		"",
+		".i16: invalid int16 type string\nline(0) pos(8)",
 	},
 	"int16 too large": {
 		`i16 = 32768`,
 		intTarget{I16: 0},
-		"",
+		".i16: strconv.ParseInt: parsing \"32768\": value out of range\nline(0) pos(6)",
 	},
 	"int32 valid": {
 		`i32 = 2147483647`,
@@ -86,12 +86,12 @@ var intUnmarshalTests = map[string]unmarshalTest{
 	"int32 bad type": {
 		`i32 = "bad"`,
 		intTarget{I32: 0},
-		"",
+		".i32: invalid int32 type string\nline(0) pos(8)",
 	},
 	"int32 too large": {
 		`i32 = 2147483648`,
 		intTarget{I32: 0},
-		"",
+		".i32: strconv.ParseInt: parsing \"2147483648\": value out of range\nline(0) pos(6)",
 	},
 	"int64 valid": {
 		`i64 = 9223372036854775807`,
@@ -106,7 +106,7 @@ var intUnmarshalTests = map[string]unmarshalTest{
 	"int64 bad type": {
 		`i64 = "bad"`,
 		intTarget{I16: 0},
-		"",
+		".i64: invalid int64 type string\nline(0) pos(8)",
 	},
 }
 
@@ -150,7 +150,7 @@ var intPtrUnmarshalTests = map[string]unmarshalTest{
 	"int bad type": {
 		`i = "bad"`,
 		intPtrTarget{},
-		"",
+		".i: invalid int type string\nline(0) pos(6)",
 	},
 	"int8 valid": {
 		`i8 = 127`,
@@ -165,12 +165,12 @@ var intPtrUnmarshalTests = map[string]unmarshalTest{
 	"int8 bad type": {
 		`i8 = "bad"`,
 		intPtrTarget{},
-		"",
+		".i8: invalid int8 type string\nline(0) pos(7)",
 	},
 	"int8 too large": {
 		`i8 = 129`,
 		intPtrTarget{},
-		"",
+		".i8: strconv.ParseInt: parsing \"129\": value out of range\nline(0) pos(5)",
 	},
 	"int16 valid": {
 		`i16 = 32767`,
@@ -185,12 +185,12 @@ var intPtrUnmarshalTests = map[string]unmarshalTest{
 	"int16 bad type": {
 		`i16 = "bad"`,
 		intPtrTarget{},
-		"",
+		".i16: invalid int16 type string\nline(0) pos(8)",
 	},
 	"int16 too large": {
 		`i16 = 32768`,
 		intPtrTarget{},
-		"",
+		".i16: strconv.ParseInt: parsing \"32768\": value out of range\nline(0) pos(6)",
 	},
 	"int32 valid": {
 		`i32 = 2147483647`,
@@ -205,12 +205,12 @@ var intPtrUnmarshalTests = map[string]unmarshalTest{
 	"int32 bad type": {
 		`i32 = "bad"`,
 		intPtrTarget{},
-		"",
+		".i32: invalid int32 type string\nline(0) pos(8)",
 	},
 	"int32 too large": {
 		`i32 = 2147483648`,
 		intPtrTarget{},
-		"",
+		".i32: strconv.ParseInt: parsing \"2147483648\": value out of range\nline(0) pos(6)",
 	},
 	"int64 valid": {
 		`i64 = 9223372036854775807`,
@@ -225,7 +225,7 @@ var intPtrUnmarshalTests = map[string]unmarshalTest{
 	"int64 bad type": {
 		`i64 = "bad"`,
 		intPtrTarget{},
-		"",
+		".i64: invalid int64 type string\nline(0) pos(8)",
 	},
 }
 

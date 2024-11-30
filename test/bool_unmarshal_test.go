@@ -27,7 +27,7 @@ var boolUnmarshalTests = map[string]unmarshalTest{
 	"bool invalid": {
 		`b = ""`,
 		boolTarget{},
-		"",
+		".b: invalid bool type string\nline(0) pos(6)",
 	},
 	"*bool true": {
 		`bp = true`,
@@ -42,7 +42,7 @@ var boolUnmarshalTests = map[string]unmarshalTest{
 	"*bool invalid": {
 		`bp = ""`,
 		boolTarget{},
-		"",
+		".bp: invalid bool type string\nline(0) pos(7)",
 	},
 }
 

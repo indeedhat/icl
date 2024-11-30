@@ -58,7 +58,7 @@ func (d *Decoder) assign(node *AssignNode, target reflect.Value, path string) er
 	d.line = node.Token.Line
 	d.line = node.Token.Pos
 
-	v, f, tag, err := d.findTargetField(node.Name, target)
+	v, _, tag, err := d.findTargetField(node.Name, target)
 	if err != nil {
 		if errors.Is(errFieldNotFound, err) {
 			return nil
@@ -66,8 +66,13 @@ func (d *Decoder) assign(node *AssignNode, target reflect.Value, path string) er
 		return err
 	}
 
-	rv, rf := *v, *f
+	rv := *v
 	path += "." + tag.key
+
+	rk := rv.Kind()
+	if rk == reflect.Ptr {
+		rk = rv.Type().Elem().Kind()
+	}
 
 	defer func() {
 		if err := recover(); err != nil {
@@ -76,27 +81,7 @@ func (d *Decoder) assign(node *AssignNode, target reflect.Value, path string) er
 	}()
 
 	var setErr error
-	var originalRv reflect.Value
-	rk := rf.Type.Kind()
-	if rk == reflect.Pointer {
-		if _, ok := node.Value.(*NullNode); ok {
-			return nil
-		}
-
-		originalRv = rv
-		rk = rf.Type.Elem().Kind()
-		if rv.IsZero() {
-			rv.Set(reflect.New(rv.Type().Elem()))
-		}
-		rv = rv.Elem()
-
-		defer func() {
-			if setErr != nil && rv.IsZero() {
-				originalRv.Set(reflect.Zero(originalRv.Type()))
-			}
-		}()
-	}
-
+switcher:
 	switch rk {
 	// primatives
 	case reflect.String,
@@ -108,7 +93,7 @@ func (d *Decoder) assign(node *AssignNode, target reflect.Value, path string) er
 		d.line = node.Value.Tkn().Line
 		d.line = node.Value.Tkn().Pos
 
-		setErr = d.assignPrimitiveNode(node.Value, rv, rk, false)
+		setErr = d.assignPrimitiveNode(node.Value, rv, false)
 
 	// complex types
 	case reflect.Slice:
@@ -121,9 +106,16 @@ func (d *Decoder) assign(node *AssignNode, target reflect.Value, path string) er
 			d.line = entry.Tkn().Line
 			d.line = entry.Tkn().Pos
 
-			if err := d.assignPrimitiveNode(entry, rv, rv.Type().Elem().Kind(), true); err != nil {
-				setErr = err
-				return nil
+			if rv.Kind() == reflect.Ptr {
+				if err := d.assignPrimitiveNode(entry, rv.Elem(), true); err != nil {
+					setErr = err
+					break switcher
+				}
+			} else {
+				if err := d.assignPrimitiveNode(entry, rv, true); err != nil {
+					setErr = err
+					break switcher
+				}
 			}
 		}
 
@@ -133,13 +125,20 @@ func (d *Decoder) assign(node *AssignNode, target reflect.Value, path string) er
 			return errors.New("node is not a map")
 		}
 
+		if !rv.IsValid() {
+			return errors.New("invalid map")
+		}
+
+		if rv.IsNil() {
+			rv.Set(reflect.MakeMap(rv.Type()))
+		}
+
 		for key, value := range val.Elements {
 			d.line = value.Tkn().Line
 			d.line = value.Tkn().Pos
 
 			t := reflect.New(rv.Type().Elem())
-			log.Print(rv.Type().Elem(), t)
-			rv.SetMapIndex(reflect.ValueOf(key.(*StringNode).Value), t)
+			log.Printf("%#v", t)
 
 			var isSlice bool
 			rt := rv.Type()
@@ -149,15 +148,20 @@ func (d *Decoder) assign(node *AssignNode, target reflect.Value, path string) er
 				isSlice = true
 			}
 
-			if err := d.assignPrimitiveNode(value, t, rt.Elem().Kind(), isSlice); err != nil {
+			if err := d.assignPrimitiveNode(value, t.Elem(), isSlice); err != nil {
 				return err
 			}
 
-			// rv.SetMapIndex(reflect.ValueOf(key.(*StringNode).Value), t)
+			log.Print(key)
+			rv.SetMapIndex(reflect.ValueOf(key.(*StringNode).Value), t.Elem())
 		}
 
 	default:
-		setErr = errors.New("unknown")
+		setErr = errors.New("unknown type " + rk.String())
+	}
+
+	if setErr != nil {
+		return fmt.Errorf("%s: %w", path, setErr)
 	}
 
 	return nil
@@ -300,169 +304,208 @@ func (d *Decoder) findTargetField(
 	return nil, nil, nil, errFieldNotFound
 }
 
-func (d *Decoder) assignPrimitiveNode(node Node, rv reflect.Value, rk reflect.Kind, isSlice bool) error {
+func (d *Decoder) assignPrimitiveNode(node Node, rv reflect.Value, isSlice bool) error {
 	d.line = node.Tkn().Line
 	d.pos = node.Tkn().Pos
 
 	switch v := node.(type) {
 	case *EnvarNode:
 		val := os.Getenv(v.Identifier.Value)
+		rk := rv.Kind()
+		if rk == reflect.Ptr {
+			rk = rv.Elem().Kind()
+		}
 		switch rk {
 		case reflect.String:
-			rv.SetString(val)
+			assignReflectValue(rv, val, false)
 		case reflect.Bool:
-			rv.SetBool(val == "true")
+			assignReflectValue(rv, val == "true", false)
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			val, err := parseIntKind(val, rk, false)
+			val, err := parseIntKind(val, rk)
 			if err != nil {
 				return err
 			}
-			rv.SetInt(val.(int64))
+			assignReflectValue(rv, val, false)
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-			val, err := parseUintKind(val, rk, false)
+			val, err := parseUintKind(val, rk)
 			if err != nil {
 				return err
 			}
-			rv.SetUint(val.(uint64))
+			assignReflectValue(rv, val, false)
 		case reflect.Float32, reflect.Float64:
 			bs := 32
 			if rk == reflect.Float64 {
 				bs = 64
 			}
+
 			v, err := strconv.ParseFloat(val, bs)
 			if err != nil {
 				return err
 			}
-			rv.SetFloat(v)
+
+			if rk == reflect.Float32 {
+				assignReflectValue(rv, float32(v), false)
+			} else {
+				assignReflectValue(rv, v, false)
+			}
+		}
+	case *NullNode:
+		if rv.Kind() != reflect.Ptr {
+			return fmt.Errorf("invalid %v type null", baseKind(rv))
 		}
 	case *StringNode:
-		if rk != reflect.String {
-			return errors.New("invalid type " + rk.String())
+		if !checkReflectKind(rv, reflect.String, isSlice) {
+			return fmt.Errorf("invalid %v type string", baseKind(rv))
 		}
-		if isSlice {
-			rv.Set(reflect.Append(rv, reflect.ValueOf(v.Value)))
-		} else {
-			rv.SetString(v.Value)
-		}
+
+		assignReflectValue(rv, v.Value, isSlice)
 	case *BooleanNode:
-		if rk != reflect.Bool {
-			return errors.New("invalid type " + rk.String())
+		if !checkReflectKind(rv, reflect.Bool, isSlice) {
+			return fmt.Errorf("invalid %v type bool", baseKind(rv))
 		}
-		if isSlice {
-			rv.Set(reflect.Append(rv, reflect.ValueOf(v.Value)))
-		} else {
-			rv.SetBool(v.Value)
-		}
+
+		assignReflectValue(rv, v.Value, isSlice)
 	case *NumberNode:
+		rk := baseKind(rv)
+
 		switch rk {
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			val, err := parseIntKind(v.Value, rk, isSlice)
+			val, err := parseIntKind(v.Value, rk)
 			if err != nil {
 				return err
 			}
-			if isSlice {
-				rv.Set(reflect.Append(rv, reflect.ValueOf(val)))
-			} else {
-				rv.SetInt(val.(int64))
-			}
+
+			assignReflectValue(rv, val, isSlice)
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-			val, err := parseUintKind(v.Value, rk, isSlice)
+			val, err := parseUintKind(v.Value, rk)
 			if err != nil {
 				return err
 			}
-			if isSlice {
-				rv.Set(reflect.Append(rv, reflect.ValueOf(val)))
-			} else {
-				rv.SetUint(val.(uint64))
-			}
+
+			assignReflectValue(rv, val, isSlice)
 		case reflect.Float32, reflect.Float64:
 			bs := 32
 			if rk == reflect.Float64 {
 				bs = 64
 			}
+
 			val, err := strconv.ParseFloat(v.Value, bs)
 			if err != nil {
 				return err
 			}
 
-			if isSlice {
-				rv.Set(reflect.Append(rv, reflect.ValueOf(val)))
+			if rk == reflect.Float32 {
+				assignReflectValue(rv, float32(val), isSlice)
 			} else {
-				log.Print(rv, val, rv.CanSet())
-				rv.SetFloat(val)
+				assignReflectValue(rv, val, isSlice)
 			}
 		default:
-			return errors.New("invalid type " + rk.String())
+			return errors.New("invalid type " + string(v.Tkn().Type) + " : " + rk.String())
 		}
 	default:
-		return errors.New("invalid type " + rk.String())
+		return errors.New("invalid node type " + string(v.Tkn().Type))
 	}
 
 	return nil
 }
 
-func parseIntKind(s string, k reflect.Kind, typed bool) (any, error) {
-	var i int64
-	var err error
+func parseIntKind(s string, k reflect.Kind) (any, error) {
 	switch k {
 	case reflect.Int8:
-		i, err = strconv.ParseInt(s, 10, 8)
-		if typed {
-			return int8(i), err
-		}
+		i, err := strconv.ParseInt(s, 10, 8)
+		return int8(i), err
 	case reflect.Int16:
-		i, err = strconv.ParseInt(s, 10, 16)
-		if typed {
-			return int16(i), err
-		}
+		i, err := strconv.ParseInt(s, 10, 16)
+		return int16(i), err
 	case reflect.Int32:
-		i, err = strconv.ParseInt(s, 10, 32)
-		if typed {
-			return int32(i), err
-		}
+		i, err := strconv.ParseInt(s, 10, 32)
+		return int32(i), err
 	case reflect.Int64:
 		return strconv.ParseInt(s, 10, 64)
 	case reflect.Int:
-		i, err = strconv.ParseInt(s, 10, 64)
-		if typed {
-			return int(i), err
-		}
-	default:
-		return 0, errors.New("unreachable")
+		i, err := strconv.ParseInt(s, 10, 64)
+		return int(i), err
 	}
 
-	return i, err
+	return 0, errors.New("invilid int type")
 }
 
-func parseUintKind(s string, k reflect.Kind, typed bool) (any, error) {
-	var i uint64
-	var err error
+func parseUintKind(s string, k reflect.Kind) (any, error) {
 	switch k {
 	case reflect.Uint8:
-		i, err = strconv.ParseUint(s, 10, 8)
-		if typed {
-			return uint8(i), err
-		}
+		i, err := strconv.ParseUint(s, 10, 8)
+		return uint8(i), err
 	case reflect.Uint16:
-		i, err = strconv.ParseUint(s, 10, 16)
-		if typed {
-			return uint16(i), err
-		}
+		i, err := strconv.ParseUint(s, 10, 16)
+		return uint16(i), err
 	case reflect.Uint32:
-		i, err = strconv.ParseUint(s, 10, 32)
-		if typed {
-			return uint32(i), err
-		}
+		i, err := strconv.ParseUint(s, 10, 32)
+		return uint32(i), err
 	case reflect.Uint64:
 		return strconv.ParseUint(s, 10, 64)
 	case reflect.Uint:
-		i, err = strconv.ParseUint(s, 10, 64)
-		if typed {
-			return uint(i), err
-		}
-	default:
-		return 0, errors.New("unreachable")
+		i, err := strconv.ParseUint(s, 10, 64)
+		return uint(i), err
 	}
 
-	return i, err
+	return 0, errors.New("invilid int type")
+}
+
+func checkReflectKind(rv reflect.Value, expected reflect.Kind, isSlice bool) bool {
+	if isSlice {
+		if rv.Kind() != reflect.Slice {
+			return false
+		}
+
+		if rv.Type().Elem().Kind() == expected {
+			return true
+		}
+
+		if rv.Type().Elem().Kind() == reflect.Ptr && rv.Type().Elem().Elem().Kind() == expected {
+			return true
+		}
+
+		return false
+	}
+
+	if rv.Kind() == expected {
+		return true
+	}
+
+	if rv.Kind() == reflect.Ptr && rv.Type().Elem().Kind() == expected {
+		return true
+	}
+
+	return false
+}
+
+func assignReflectValue[T any](rv reflect.Value, val T, isSlice bool) {
+	if isSlice {
+		if rv.Type().Elem().Kind() == reflect.Ptr {
+			rv.Set(reflect.Append(rv, reflect.ValueOf(&val)))
+		} else {
+			rv.Set(reflect.Append(rv, reflect.ValueOf(val)))
+		}
+	} else if rv.Kind() == reflect.Ptr {
+		rv.Set(reflect.ValueOf(&val))
+	} else {
+		rv.Set(reflect.ValueOf(val))
+	}
+}
+
+func baseKind(rv reflect.Value) reflect.Kind {
+	rk := rv.Kind()
+	if rk == reflect.Ptr {
+		rk = rv.Elem().Kind()
+		if rk == reflect.Invalid {
+			rk = rv.Type().Elem().Kind()
+		}
+	} else if rk == reflect.Slice {
+		rk = rv.Type().Elem().Kind()
+		if rk == reflect.Ptr {
+			rk = rv.Type().Elem().Elem().Kind()
+		}
+	}
+
+	return rk
 }
