@@ -70,9 +70,9 @@ func (d *Decoder) assign(node *AssignNode, target reflect.Value, path string) er
 	path += "." + tag.key
 
 	defer func() {
-		// if err := recover(); err != nil {
-		// 	d.recover = fmt.Errorf("%s: %v", path, err)
-		// }
+		if err := recover(); err != nil {
+			d.recover = fmt.Errorf("%s: %v", path, err)
+		}
 	}()
 
 	var setErr error
