@@ -9,9 +9,9 @@ import (
 )
 
 func main() {
-	parse()
+	// parse()
 	// marshal()
-	// unmarshal()
+	unmarshal()
 }
 
 func parse() {
@@ -134,7 +134,7 @@ func marshal() {
 func unmarshal() {
 	document := `
 	string = "my string"
-	boolean = true
+	boolean = "-"
 	nullable = null
 	nullable_with_val = "with val"
 	integer = -17

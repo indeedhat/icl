@@ -9,14 +9,11 @@ const (
 
 	// Identifiers & literals
 	TknIdent  TokenType = "IDENT"
-	TknInt    TokenType = "INT"
+	TknNumber TokenType = "NUMBER"
 	TknString TokenType = "STRING"
 
 	// Operators
-	TknAssign      TokenType = "="
-	TknHash        TokenType = "#"
-	TknLessThan    TokenType = "<"
-	TknGreaterThan TokenType = ">"
+	TknAssign TokenType = "="
 
 	// Delimiters
 	TknComma TokenType = ","

@@ -13,6 +13,7 @@ import (
 type Node interface {
 	TokenLiteral() string
 	String() string
+	Tkn() Token
 }
 
 // Ast contains the Abstract Syntax Tree of an icl ducument
@@ -86,6 +87,10 @@ func (n *Ast) TokenLiteral() string {
 	return n.Nodes[0].TokenLiteral()
 }
 
+func (n *Ast) Tkn() Token {
+	return Token{}
+}
+
 var _ Node = (*Ast)(nil)
 
 type Identifier struct {
@@ -101,6 +106,10 @@ func (n *Identifier) String() string {
 // TokenLiteral implements Node
 func (n *Identifier) TokenLiteral() string {
 	return n.Token.Literal
+}
+
+func (n *Identifier) Tkn() Token {
+	return n.Token
 }
 
 var _ Node = (*Identifier)(nil)
@@ -120,6 +129,10 @@ func (n *NumberNode) TokenLiteral() string {
 	return n.Token.Literal
 }
 
+func (n *NumberNode) Tkn() Token {
+	return n.Token
+}
+
 var _ Node = (*NumberNode)(nil)
 
 type StringNode struct {
@@ -135,6 +148,10 @@ func (n *StringNode) String() string {
 // TokenNode implements Node
 func (n *StringNode) TokenLiteral() string {
 	return n.Token.Literal
+}
+
+func (n *StringNode) Tkn() Token {
+	return n.Token
 }
 
 var _ Node = (*StringNode)(nil)
@@ -157,6 +174,9 @@ func (n *BooleanNode) String() string {
 func (n *BooleanNode) TokenLiteral() string {
 	return n.Token.Literal
 }
+func (n *BooleanNode) Tkn() Token {
+	return n.Token
+}
 
 var _ Node = (*BooleanNode)(nil)
 
@@ -172,6 +192,10 @@ func (n *NullNode) String() string {
 // TokenLiteral implements Node
 func (n *NullNode) TokenLiteral() string {
 	return n.Token.Literal
+}
+
+func (n *NullNode) Tkn() Token {
+	return n.Token
 }
 
 var _ Node = (*NullNode)(nil)
@@ -207,6 +231,10 @@ func (n *SliceNode) TokenLiteral() string {
 	return n.Token.Literal
 }
 
+func (n *SliceNode) Tkn() Token {
+	return n.Token
+}
+
 var _ Node = (*SliceNode)(nil)
 
 type CollectionNode struct {
@@ -234,6 +262,14 @@ func (n *CollectionNode) String() string {
 // TokenLiteral implements Node
 func (n *CollectionNode) TokenLiteral() string {
 	return ""
+}
+
+func (n *CollectionNode) Tkn() Token {
+	if len(n.Elements) > 0 {
+		return n.Elements[0].Tkn()
+	}
+
+	return Token{}
 }
 
 var _ Node = (*CollectionNode)(nil)
@@ -274,6 +310,9 @@ func (n *MapNode) String() string {
 func (n *MapNode) TokenLiteral() string {
 	return n.Token.Literal
 }
+func (n *MapNode) Tkn() Token {
+	return n.Token
+}
 
 var _ Node = (*MapNode)(nil)
 
@@ -306,6 +345,10 @@ func (n *AssignNode) TokenLiteral() string {
 	return n.Token.Literal
 }
 
+func (n *AssignNode) Tkn() Token {
+	return n.Token
+}
+
 var _ Node = (*AssignNode)(nil)
 
 type BlockNode struct {
@@ -332,6 +375,9 @@ func (n *BlockNode) String() string {
 // TokenLiteral implements Node
 func (n *BlockNode) TokenLiteral() string {
 	return n.Token.Literal
+}
+func (n *BlockNode) Tkn() Token {
+	return n.Token
 }
 
 var _ Node = (*BlockNode)(nil)
@@ -360,6 +406,9 @@ func (n *BlockBodyNode) String() string {
 func (n *BlockBodyNode) TokenLiteral() string {
 	return n.Token.Literal
 }
+func (n *BlockBodyNode) Tkn() Token {
+	return n.Token
+}
 
 var _ Node = (*BlockBodyNode)(nil)
 
@@ -382,6 +431,10 @@ func (n *EnvarNode) String() string {
 // TokenLiteral implements Node
 func (n *EnvarNode) TokenLiteral() string {
 	return n.Token.Literal
+}
+
+func (n *EnvarNode) Tkn() Token {
+	return n.Token
 }
 
 var _ Node = (*EnvarNode)(nil)

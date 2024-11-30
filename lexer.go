@@ -53,7 +53,7 @@ func (l *Lexer) NextToken() Token {
 	case ':':
 		return l.token(TknColon, string(l.char))
 	case '-':
-		return l.token(TknInt, l.readNumber())
+		return l.token(TknNumber, l.readNumber())
 	case '"', '\'':
 		str := l.readStringLiteral(l.char)
 		if str == nil {
@@ -68,7 +68,7 @@ func (l *Lexer) NextToken() Token {
 			return l.token(lookupIdent(ident), ident)
 		}
 		if isDigit(l.char) {
-			return l.token(TknInt, l.readNumber())
+			return l.token(TknNumber, l.readNumber())
 		}
 
 		return l.token(TknIllegal, string(l.char))

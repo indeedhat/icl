@@ -3,6 +3,7 @@ package icl
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"reflect"
 	"strconv"
@@ -30,6 +31,9 @@ type Decoder struct {
 	target       reflect.Value
 	paramCounter int
 	blockMap     map[reflect.Value]map[string]struct{}
+	recover      error
+	line         int
+	pos          int
 }
 
 func NewDecoder(a Ast, target reflect.Value) *Decoder {
@@ -42,7 +46,7 @@ func NewDecoder(a Ast, target reflect.Value) *Decoder {
 
 func (d *Decoder) decode() error {
 	for _, node := range d.ast.Nodes {
-		if err := d.node(node, d.target); err != nil {
+		if err := d.node(node, d.target, ""); err != nil {
 			return err
 		}
 	}
@@ -50,8 +54,11 @@ func (d *Decoder) decode() error {
 	return nil
 }
 
-func (d *Decoder) assign(node *AssignNode, target reflect.Value) error {
-	v, f, err := d.findTargetField(node.Name, target)
+func (d *Decoder) assign(node *AssignNode, target reflect.Value, path string) error {
+	d.line = node.Token.Line
+	d.line = node.Token.Pos
+
+	v, f, tag, err := d.findTargetField(node.Name, target)
 	if err != nil {
 		if errors.Is(errFieldNotFound, err) {
 			return nil
@@ -60,6 +67,13 @@ func (d *Decoder) assign(node *AssignNode, target reflect.Value) error {
 	}
 
 	rv, rf := *v, *f
+	path += "." + tag.key
+
+	defer func() {
+		// if err := recover(); err != nil {
+		// 	d.recover = fmt.Errorf("%s: %v", path, err)
+		// }
+	}()
 
 	var setErr error
 	var originalRv reflect.Value
@@ -91,6 +105,9 @@ func (d *Decoder) assign(node *AssignNode, target reflect.Value) error {
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
 		reflect.Float32, reflect.Float64:
 
+		d.line = node.Value.Tkn().Line
+		d.line = node.Value.Tkn().Pos
+
 		setErr = d.assignPrimitiveNode(node.Value, rv, rk, false)
 
 	// complex types
@@ -101,6 +118,9 @@ func (d *Decoder) assign(node *AssignNode, target reflect.Value) error {
 		}
 
 		for _, entry := range val.Elements {
+			d.line = entry.Tkn().Line
+			d.line = entry.Tkn().Pos
+
 			if err := d.assignPrimitiveNode(entry, rv, rv.Type().Elem().Kind(), true); err != nil {
 				setErr = err
 				return nil
@@ -114,20 +134,26 @@ func (d *Decoder) assign(node *AssignNode, target reflect.Value) error {
 		}
 
 		for key, value := range val.Elements {
-			t := reflect.New(rv.Elem().Type())
+			d.line = value.Tkn().Line
+			d.line = value.Tkn().Pos
+
+			t := reflect.New(rv.Type().Elem())
+			log.Print(rv.Type().Elem(), t)
+			rv.SetMapIndex(reflect.ValueOf(key.(*StringNode).Value), t)
 
 			var isSlice bool
-			rt := rv.Elem().Type()
+			rt := rv.Type()
+
 			if rt.Kind() == reflect.Slice {
 				rt = rt.Elem()
 				isSlice = true
 			}
 
-			if err := d.assignPrimitiveNode(value, t, rt.Kind(), isSlice); err != nil {
+			if err := d.assignPrimitiveNode(value, t, rt.Elem().Kind(), isSlice); err != nil {
 				return err
 			}
 
-			rv.SetMapIndex(reflect.ValueOf(key.(*StringNode).Value), t)
+			// rv.SetMapIndex(reflect.ValueOf(key.(*StringNode).Value), t)
 		}
 
 	default:
@@ -137,7 +163,7 @@ func (d *Decoder) assign(node *AssignNode, target reflect.Value) error {
 	return nil
 }
 
-func (d *Decoder) block(node *BlockNode, rv reflect.Value) error {
+func (d *Decoder) block(node *BlockNode, rv reflect.Value, path string) error {
 	pc := 0
 	d.paramCounter = pc
 
@@ -165,7 +191,10 @@ func (d *Decoder) block(node *BlockNode, rv reflect.Value) error {
 
 	// params
 	for _, param := range node.Parameters {
-		v, _, err := d.findTargetField(&Identifier{Value: ".param"}, rv)
+		d.line = param.Line
+		d.line = param.Pos
+
+		v, _, _, err := d.findTargetField(&Identifier{Value: ".param"}, rv)
 		if err != nil {
 			if errors.Is(errFieldNotFound, err) {
 				continue
@@ -178,7 +207,7 @@ func (d *Decoder) block(node *BlockNode, rv reflect.Value) error {
 		d.paramCounter = pc
 
 		if rv.Kind() != reflect.String {
-			return errors.New(".param fields must be a string")
+			return errors.New(path + ": .param fields must be a string")
 		}
 
 		rv.SetString(param.Literal)
@@ -186,7 +215,7 @@ func (d *Decoder) block(node *BlockNode, rv reflect.Value) error {
 
 	// body
 	for _, node := range node.Body.Nodes {
-		if err := d.node(node, rv); err != nil {
+		if err := d.node(node, rv, path); err != nil {
 			return err
 		}
 	}
@@ -198,14 +227,14 @@ func (d *Decoder) block(node *BlockNode, rv reflect.Value) error {
 	return nil
 }
 
-func (d *Decoder) node(node Node, target reflect.Value) error {
+func (d *Decoder) node(node Node, target reflect.Value, path string) error {
 	var err error
 
 	switch n := node.(type) {
 	case *AssignNode:
-		err = d.assign(n, target)
+		err = d.assign(n, target, path)
 	case *BlockNode:
-		v, _, err := d.findTargetField(&Identifier{Value: n.Token.Literal}, target)
+		v, _, tag, err := d.findTargetField(&Identifier{Value: n.Token.Literal}, target)
 		if err != nil {
 			if errors.Is(errFieldNotFound, err) {
 				return nil
@@ -213,15 +242,32 @@ func (d *Decoder) node(node Node, target reflect.Value) error {
 			return err
 		}
 
-		err = d.block(n, *v)
+		err = d.block(n, *v, path+"."+tag.key)
 	default:
 		// NB to keep icl as fault tollerent as possible any other node types in the ast will be ignored
 	}
 
-	return err
+	if r := d.recover; r != nil {
+		d.recover = nil
+		err = r
+	}
+
+	if err != nil {
+		return fmt.Errorf("%w\nline(%d) pos(%d)", err, d.line, d.pos)
+	}
+
+	return nil
 }
 
-func (d *Decoder) findTargetField(ident *Identifier, target reflect.Value) (*reflect.Value, *reflect.StructField, error) {
+func (d *Decoder) findTargetField(
+	ident *Identifier,
+	target reflect.Value,
+) (
+	*reflect.Value,
+	*reflect.StructField,
+	*tags,
+	error,
+) {
 	var paramCounter int
 	for i := 0; i < target.NumField(); i++ {
 		// TODO: this needs a cache so i don't have to keep parsing the struct fields each time
@@ -236,7 +282,7 @@ func (d *Decoder) findTargetField(ident *Identifier, target reflect.Value) (*ref
 
 		tag, err := parseTags(tagString)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
 		if tag.key != ident.Value && ident.Value != ".param" {
@@ -248,13 +294,16 @@ func (d *Decoder) findTargetField(ident *Identifier, target reflect.Value) (*ref
 			continue
 		}
 
-		return &rv, &rf, nil
+		return &rv, &rf, tag, nil
 	}
 
-	return nil, nil, errFieldNotFound
+	return nil, nil, nil, errFieldNotFound
 }
 
 func (d *Decoder) assignPrimitiveNode(node Node, rv reflect.Value, rk reflect.Kind, isSlice bool) error {
+	d.line = node.Tkn().Line
+	d.pos = node.Tkn().Pos
+
 	switch v := node.(type) {
 	case *EnvarNode:
 		val := os.Getenv(v.Identifier.Value)
@@ -280,11 +329,11 @@ func (d *Decoder) assignPrimitiveNode(node Node, rv reflect.Value, rk reflect.Ki
 			if rk == reflect.Float64 {
 				bs = 64
 			}
-			val, err := strconv.ParseFloat(val, bs)
+			v, err := strconv.ParseFloat(val, bs)
 			if err != nil {
 				return err
 			}
-			rv.SetFloat(val)
+			rv.SetFloat(v)
 		}
 	case *StringNode:
 		if rk != reflect.String {
@@ -335,9 +384,11 @@ func (d *Decoder) assignPrimitiveNode(node Node, rv reflect.Value, rk reflect.Ki
 			if err != nil {
 				return err
 			}
+
 			if isSlice {
 				rv.Set(reflect.Append(rv, reflect.ValueOf(val)))
 			} else {
+				log.Print(rv, val, rv.CanSet())
 				rv.SetFloat(val)
 			}
 		default:
