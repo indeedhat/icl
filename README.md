@@ -138,7 +138,7 @@ my_key = env(HOME)
 - int, int8, int16, int32, int64
 - uint, uint8, uint16, uint32, uint64
 - float32, float64
-- slice (no pointer values)
+- slice
 - map (string keys only)
 - struct
 
@@ -302,11 +302,11 @@ foundVersion, config, err := icl.UnmarshalVersion(
 ```
 
 ## LImitations
-- Slices do not support map or pointer values
+- Slices do not support map values
 
 ## Known issues
 - [ ] parser is probably too tolerant of issues
-- [ ] error messages kinda suck
+- [ ] error messages still need some work
 
 ## Under consideration
 ### Marshalling/Unmarshaling comments
@@ -332,6 +332,15 @@ type config struct {
     MyVar1 string `icl:"my_var_1"`
     MyVar2 string `icl:"my_var_2"`
     PostMyVar2 []string `icl:".comments"`
+}
+
+type configAlt struct {
+    Version int `icl:"version"`
+    ...
+    // the key being the line number the comment resides on
+    Comments map[int]string `icl:".comments"`
+    MyVar1 string `icl:"my_var_1"`
+    MyVar2 string `icl:"my_var_2"`
 }
 ```
 
