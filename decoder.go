@@ -3,7 +3,6 @@ package icl
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"reflect"
 	"strconv"
@@ -122,11 +121,13 @@ switcher:
 	case reflect.Map:
 		val, ok := node.Value.(*MapNode)
 		if !ok {
-			return errors.New("node is not a map")
+			setErr = errors.New("node is not a map")
+			break switcher
 		}
 
 		if !rv.IsValid() {
-			return errors.New("invalid map")
+			setErr = errors.New("invalid map")
+			break switcher
 		}
 
 		if rv.IsNil() {
@@ -138,7 +139,6 @@ switcher:
 			d.line = value.Tkn().Pos
 
 			t := reflect.New(rv.Type().Elem())
-			log.Printf("%#v", t)
 
 			var isSlice bool
 			rt := rv.Type()
@@ -149,15 +149,25 @@ switcher:
 			}
 
 			if err := d.assignPrimitiveNode(value, t.Elem(), isSlice); err != nil {
-				return err
+				setErr = err
+				break switcher
 			}
 
-			log.Print(key)
-			rv.SetMapIndex(reflect.ValueOf(key.(*StringNode).Value), t.Elem())
+			// NB: this looks like pointless repetition but go uses the common interface type if i
+			//     try to do this with a single case of *StringNode, *Identifier
+			switch k := key.(type) {
+			case *StringNode:
+				rv.SetMapIndex(reflect.ValueOf(k.Value), t.Elem())
+			case *Identifier:
+				rv.SetMapIndex(reflect.ValueOf(k.Value), t.Elem())
+			default:
+				setErr = errors.New("Map keys must be a string")
+				break switcher
+			}
 		}
 
 	default:
-		setErr = errors.New("unknown type " + rk.String())
+		setErr = errors.New(path + ": unknown type " + rk.String())
 	}
 
 	if setErr != nil {
@@ -487,7 +497,9 @@ func assignReflectValue[T any](rv reflect.Value, val T, isSlice bool) {
 			rv.Set(reflect.Append(rv, reflect.ValueOf(val)))
 		}
 	} else if rv.Kind() == reflect.Ptr {
-		rv.Set(reflect.ValueOf(&val))
+		ptr := reflect.New(reflect.TypeOf(val))
+		ptr.Elem().Set(reflect.ValueOf(val))
+		rv.Set(ptr)
 	} else {
 		rv.Set(reflect.ValueOf(val))
 	}

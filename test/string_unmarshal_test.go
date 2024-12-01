@@ -22,7 +22,7 @@ var stringUnmarshalTests = map[string]unmarshalTest{
 	"string invalid": {
 		`s = []`,
 		stringTarget{S: ""},
-		"",
+		".s: invalid node type ]\nline(0) pos(5)",
 	},
 	"*string valid": {
 		`sp = "a string"`,
@@ -32,7 +32,7 @@ var stringUnmarshalTests = map[string]unmarshalTest{
 	"*string invalid": {
 		`sp = []`,
 		stringTarget{},
-		"",
+		".sp: invalid node type ]\nline(0) pos(6)",
 	},
 }
 

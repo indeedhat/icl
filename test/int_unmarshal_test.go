@@ -19,7 +19,7 @@ type intTarget struct {
 
 var intUnmarshalTests = map[string]unmarshalTest{
 	"int valid": {
-		`i = 9223372036854775807`,
+		"i = 9223372036854775807",
 		intTarget{I: math.MaxInt},
 		"",
 	},

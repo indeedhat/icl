@@ -21,7 +21,7 @@ func parse() {
 		null_var = null
 		true_var = true
 		false_var = false
-		int_var = 39283
+		int_var = 9223372036854775807
 		float_var = 3.14.
 		array_var = ["some", "data"]
 		# comment
@@ -56,7 +56,8 @@ type config struct {
 	Boolean       bool                `icl:"boolean"`
 	Nil           *string             `icl:"nullable"`
 	NilWith       *string             `icl:"nullable_with_val"`
-	Int           int8                `icl:"integer"`
+	Int           int                 `icl:"integer"`
+	IntPtr        *int                `icl:"integer_ptr"`
 	Uint          uint                `icl:"unsigned_integer"`
 	Float         float32             `icl:"float.2"`
 	StrSlice      []string            `icl:"string_slice"`
@@ -135,11 +136,11 @@ func marshal() {
 
 func unmarshal() {
 	document := `
+	integer_ptr = 9223372036854775807
 	nullable_with_val = "with val"
 	string = "my string"
 	boolean = true
 	nullable = null
-	integer = -17
 	unsigned_integer = 23
 	float = 3.14
 	envar = env(HOME)

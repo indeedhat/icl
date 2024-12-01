@@ -1,4 +1,6 @@
-session = "icl"
+# see github.com/indeedhat/automux
+version = 1
+session_id = "icl"
 # config = "./tmux.conf"
 # attach_existing = false
 
@@ -9,9 +11,6 @@ window "Editor" {
 
 window "Shell" {
     split {
-        #     vertical = true
-        #     exec = "cmd_to_run_in_split"
-        #     size = 30
-        #     dir = "sub/"
+      dir = "test"
     }
 }
